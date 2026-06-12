@@ -48,3 +48,63 @@ loadReferenceData().catch((err) => {
   console.error(err);
   showError('Could not load player list. Refresh to try again.');
 });
+
+let activeIndex = -1;   // highlighted suggestion
+let matches = [];
+
+function renderSuggestions() {
+  if (!matches.length) { show(el.suggestions, false); return; }
+  el.suggestions.innerHTML = matches
+    .map((p, i) => `
+      <div class="suggestion-item px-4 py-2 border-b last:border-b-0 ${i === activeIndex ? 'active' : ''}"
+           data-i="${i}">
+        <span class="font-medium">${p.fullName}</span>
+        <span class="text-xs text-gray-500">${teamAbbrev[p.teamId] || ''}</span>
+      </div>`)
+    .join('');
+  show(el.suggestions, true);
+  el.suggestions.querySelectorAll('.suggestion-item').forEach((node) => {
+    node.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      selectPlayer(matches[Number(node.dataset.i)]);
+    });
+  });
+}
+
+function updateMatches(query) {
+  const q = query.trim().toLowerCase();
+  if (!q) { matches = []; activeIndex = -1; show(el.suggestions, false); return; }
+  matches = players
+    .filter((p) => p.fullName.toLowerCase().includes(q))
+    .slice(0, 8);
+  activeIndex = matches.length ? 0 : -1;
+  renderSuggestions();
+}
+
+el.search.addEventListener('input', (e) => updateMatches(e.target.value));
+
+el.search.addEventListener('keydown', (e) => {
+  if (!matches.length) return;
+  if (e.key === 'ArrowDown') { e.preventDefault(); activeIndex = (activeIndex + 1) % matches.length; renderSuggestions(); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); activeIndex = (activeIndex - 1 + matches.length) % matches.length; renderSuggestions(); }
+  else if (e.key === 'Enter') { e.preventDefault(); if (activeIndex >= 0) selectPlayer(matches[activeIndex]); }
+  else if (e.key === 'Escape') { show(el.suggestions, false); }
+});
+
+document.addEventListener('click', (e) => {
+  if (!el.search.contains(e.target) && !el.suggestions.contains(e.target)) {
+    show(el.suggestions, false);
+  }
+});
+
+function selectPlayer(player) {
+  el.search.value = player.fullName;
+  show(el.suggestions, false);
+  matches = [];
+  loadPlayer(player);
+}
+
+// Temporary stub until Task 8 implements the real loader.
+async function loadPlayer(player) {
+  console.log('selected', player);
+}
