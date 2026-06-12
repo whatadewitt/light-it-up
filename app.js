@@ -51,6 +51,7 @@ loadReferenceData().catch((err) => {
 
 let activeIndex = -1;   // highlighted suggestion
 let matches = [];
+let currentRequestId = 0;
 
 function renderSuggestions() {
   if (!matches.length) { show(el.suggestions, false); return; }
@@ -88,7 +89,7 @@ el.search.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowDown') { e.preventDefault(); activeIndex = (activeIndex + 1) % matches.length; renderSuggestions(); }
   else if (e.key === 'ArrowUp') { e.preventDefault(); activeIndex = (activeIndex - 1 + matches.length) % matches.length; renderSuggestions(); }
   else if (e.key === 'Enter') { e.preventDefault(); if (activeIndex >= 0) selectPlayer(matches[activeIndex]); }
-  else if (e.key === 'Escape') { show(el.suggestions, false); }
+  else if (e.key === 'Escape') { matches = []; activeIndex = -1; show(el.suggestions, false); }
 });
 
 document.addEventListener('click', (e) => {
@@ -105,12 +106,14 @@ function selectPlayer(player) {
 }
 
 async function loadPlayer(player) {
+  const requestId = ++currentRequestId;
   clearError();
   show(el.result, false);
   show(el.loading, true);
   try {
     const url = `${API}/people/${player.id}/stats?stats=gameLog&season=${SEASON}&group=hitting`;
     const data = await getJSON(url);
+    if (requestId !== currentRequestId) return;
     const splits = (data.stats && data.stats[0] && data.stats[0].splits) || [];
     if (!splits.length) {
       showError(`No ${SEASON} games for ${player.fullName} yet.`);
@@ -145,16 +148,24 @@ function renderHeatmap(player, games) {
   show(el.result, true);
 }
 
+let tipW = 0, tipH = 0;
+
 function showTooltip(box, x, y) {
   el.tipMatchup.textContent = box.dataset.matchup || '';
   el.tipLine.textContent = box.dataset.line || '';
   show(el.tooltip, true);
-  const pad = 12;
   const rect = el.tooltip.getBoundingClientRect();
+  tipW = rect.width;
+  tipH = rect.height;
+  moveTooltip(x, y);
+}
+
+function moveTooltip(x, y) {
+  const pad = 12;
   let left = x + pad;
   let top = y + pad;
-  if (left + rect.width > window.innerWidth) left = x - rect.width - pad;
-  if (top + rect.height > window.innerHeight) top = y - rect.height - pad;
+  if (left + tipW > window.innerWidth) left = x - tipW - pad;
+  if (top + tipH > window.innerHeight) top = y - tipH - pad;
   el.tooltip.style.left = `${Math.max(4, left)}px`;
   el.tooltip.style.top = `${Math.max(4, top)}px`;
 }
@@ -167,7 +178,7 @@ el.grid.addEventListener('mouseover', (e) => {
 });
 el.grid.addEventListener('mousemove', (e) => {
   const box = e.target.closest('.cell');
-  if (box) showTooltip(box, e.clientX, e.clientY);
+  if (box) moveTooltip(e.clientX, e.clientY);
 });
 el.grid.addEventListener('mouseout', (e) => {
   if (e.target.closest('.cell')) hideTooltip();
@@ -179,4 +190,6 @@ el.grid.addEventListener('focusin', (e) => {
     showTooltip(box, r.left, r.bottom);
   }
 });
-el.grid.addEventListener('focusout', hideTooltip);
+el.grid.addEventListener('focusout', (e) => {
+  if (!e.relatedTarget || !el.grid.contains(e.relatedTarget)) hideTooltip();
+});
