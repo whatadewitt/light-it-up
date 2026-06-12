@@ -1,8 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { shadeForTotalBases } from './lib.js';
-import { buildBattingLine } from './lib.js';
-import { matchupLabel, normalizeGame } from './lib.js';
+import { shadeForTotalBases, buildBattingLine, matchupLabel, normalizeGame } from './lib.js';
 
 test('shadeForTotalBases maps total bases to GitHub green shades', () => {
   assert.equal(shadeForTotalBases(0), '#ebedf0');
@@ -78,6 +76,17 @@ test('normalizeGame: maps a split into a game record', () => {
     totalBases: 2,
     line: '1 / 3, 2B, BB',
   });
+});
+
+test('normalizeGame: handles a split with no opponent', () => {
+  const g = normalizeGame({ date: '2026-05-01', isHome: true, stat: { hits: 0, atBats: 4, totalBases: 0 } }, { 147: 'NYY' }, 2);
+  assert.equal(g.opp, '???');
+  assert.equal(g.line, '0 / 4');
+});
+
+test('matchupLabel: works with the ??? fallback abbrev', () => {
+  assert.equal(matchupLabel(true, '???'), 'vs. ???');
+  assert.equal(matchupLabel(false, '???'), '@ ???');
 });
 
 test('normalizeGame: falls back to opponent name when abbrev missing', () => {
