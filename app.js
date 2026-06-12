@@ -104,7 +104,43 @@ function selectPlayer(player) {
   loadPlayer(player);
 }
 
-// Temporary stub until Task 8 implements the real loader.
 async function loadPlayer(player) {
-  console.log('selected', player);
+  clearError();
+  show(el.result, false);
+  show(el.loading, true);
+  try {
+    const url = `${API}/people/${player.id}/stats?stats=gameLog&season=${SEASON}&group=hitting`;
+    const data = await getJSON(url);
+    const splits = (data.stats && data.stats[0] && data.stats[0].splits) || [];
+    if (!splits.length) {
+      showError(`No ${SEASON} games for ${player.fullName} yet.`);
+      return;
+    }
+    const games = splits.map((s, i) => normalizeGame(s, teamAbbrev, i));
+    renderHeatmap(player, games);
+  } catch (err) {
+    console.error(err);
+    showError('Could not load game log. Please try again.');
+  } finally {
+    show(el.loading, false);
+  }
+}
+
+function renderHeatmap(player, games) {
+  const teamAbbr = teamAbbrev[player.teamId] || '';
+  el.header.innerHTML = `
+    <span class="text-lg font-semibold">${player.fullName}</span>
+    <span class="text-sm text-gray-500">${teamAbbr} · ${games.length} games</span>`;
+
+  el.grid.innerHTML = '';
+  for (const g of games) {
+    const box = document.createElement('div');
+    box.className = 'cell';
+    box.tabIndex = 0;
+    box.style.background = shadeForTotalBases(g.totalBases);
+    box.dataset.matchup = matchupLabel(g.isHome, g.opp);
+    box.dataset.line = g.line;
+    el.grid.appendChild(box);
+  }
+  show(el.result, true);
 }
