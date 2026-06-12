@@ -144,3 +144,39 @@ function renderHeatmap(player, games) {
   }
   show(el.result, true);
 }
+
+function showTooltip(box, x, y) {
+  el.tipMatchup.textContent = box.dataset.matchup || '';
+  el.tipLine.textContent = box.dataset.line || '';
+  show(el.tooltip, true);
+  const pad = 12;
+  const rect = el.tooltip.getBoundingClientRect();
+  let left = x + pad;
+  let top = y + pad;
+  if (left + rect.width > window.innerWidth) left = x - rect.width - pad;
+  if (top + rect.height > window.innerHeight) top = y - rect.height - pad;
+  el.tooltip.style.left = `${Math.max(4, left)}px`;
+  el.tooltip.style.top = `${Math.max(4, top)}px`;
+}
+
+function hideTooltip() { show(el.tooltip, false); }
+
+el.grid.addEventListener('mouseover', (e) => {
+  const box = e.target.closest('.cell');
+  if (box) showTooltip(box, e.clientX, e.clientY);
+});
+el.grid.addEventListener('mousemove', (e) => {
+  const box = e.target.closest('.cell');
+  if (box) showTooltip(box, e.clientX, e.clientY);
+});
+el.grid.addEventListener('mouseout', (e) => {
+  if (e.target.closest('.cell')) hideTooltip();
+});
+el.grid.addEventListener('focusin', (e) => {
+  const box = e.target.closest('.cell');
+  if (box) {
+    const r = box.getBoundingClientRect();
+    showTooltip(box, r.left, r.bottom);
+  }
+});
+el.grid.addEventListener('focusout', hideTooltip);
