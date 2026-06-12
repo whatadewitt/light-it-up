@@ -6,7 +6,8 @@
   <title>MLB Total Bases — 2026</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    .hidden { display: none; }
+    .hidden { display: none !important; }
+    #loading { display: flex; }
     .spinner {
       border: 3px solid rgba(0,0,0,.1);
       width: 28px; height: 28px;
@@ -16,7 +17,7 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .suggestion-item:hover, .suggestion-item.active { background:#e5e7eb; cursor:pointer; }
-    .cell { width:14px; height:14px; border-radius:3px; outline:none; }
+    .cell { display:inline-block; width:14px; height:14px; border-radius:3px; outline:none; }
     .cell:focus { box-shadow:0 0 0 2px #1f6feb; }
     #tooltip { position:fixed; z-index:50; pointer-events:none; }
   </style>
