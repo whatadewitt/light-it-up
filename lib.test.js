@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { shadeForTotalBases } from './lib.js';
 import { buildBattingLine } from './lib.js';
+import { matchupLabel, normalizeGame } from './lib.js';
 
 test('shadeForTotalBases maps total bases to GitHub green shades', () => {
   assert.equal(shadeForTotalBases(0), '#ebedf0');
@@ -54,4 +55,40 @@ test('buildBattingLine: a walk with no hits', () => {
 
 test('buildBattingLine: missing fields treated as zero', () => {
   assert.equal(buildBattingLine({}), '0 / 0');
+});
+
+test('matchupLabel: vs for home, @ for away', () => {
+  assert.equal(matchupLabel(true, 'NYY'), 'vs. NYY');
+  assert.equal(matchupLabel(false, 'NYY'), '@ NYY');
+});
+
+test('normalizeGame: maps a split into a game record', () => {
+  const split = {
+    date: '2026-04-01',
+    isHome: false,
+    opponent: { id: 147, name: 'New York Yankees' },
+    stat: { hits: 1, atBats: 3, doubles: 1, baseOnBalls: 1, totalBases: 2 },
+  };
+  const teamAbbrev = { 147: 'NYY' };
+  assert.deepEqual(normalizeGame(split, teamAbbrev, 5), {
+    index: 5,
+    date: '2026-04-01',
+    opp: 'NYY',
+    isHome: false,
+    totalBases: 2,
+    line: '1 / 3, 2B, BB',
+  });
+});
+
+test('normalizeGame: falls back to opponent name when abbrev missing', () => {
+  const split = {
+    date: '2026-04-02',
+    isHome: true,
+    opponent: { id: 999, name: 'Mystery Team' },
+    stat: { hits: 0, atBats: 4, totalBases: 0 },
+  };
+  const g = normalizeGame(split, {}, 0);
+  assert.equal(g.opp, 'Mystery Team');
+  assert.equal(g.totalBases, 0);
+  assert.equal(g.line, '0 / 4');
 });

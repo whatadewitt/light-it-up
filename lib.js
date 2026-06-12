@@ -27,3 +27,22 @@ export function buildBattingLine(stat = {}) {
     .map(([label, count]) => (count > 1 ? `${count} ${label}` : label));
   return tokens.length ? `${head}, ${tokens.join(', ')}` : head;
 }
+
+export function matchupLabel(isHome, abbrev) {
+  return `${isHome ? 'vs.' : '@'} ${abbrev}`;
+}
+
+export function normalizeGame(split, teamAbbrev = {}, index = 0) {
+  const stat = split.stat || {};
+  const oppId = split.opponent && split.opponent.id;
+  const opp = teamAbbrev[oppId] || (split.opponent && split.opponent.name) || '???';
+  const tb = Number(stat.totalBases);
+  return {
+    index,
+    date: split.date || '',
+    opp,
+    isHome: Boolean(split.isHome),
+    totalBases: Number.isFinite(tb) ? tb : 0,
+    line: buildBattingLine(stat),
+  };
+}
