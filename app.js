@@ -52,9 +52,18 @@ loadReferenceData().catch((err) => {
 let activeIndex = -1;   // highlighted suggestion
 let matches = [];
 let currentRequestId = 0;
+let lastQuery = '';
 
 function renderSuggestions() {
-  if (!matches.length) { show(el.suggestions, false); return; }
+  if (!matches.length) {
+    if (lastQuery) {
+      el.suggestions.innerHTML = '<div class="px-4 py-2 text-sm text-gray-500">No players found</div>';
+      show(el.suggestions, true);
+    } else {
+      show(el.suggestions, false);
+    }
+    return;
+  }
   el.suggestions.innerHTML = matches
     .map((p, i) => `
       <div class="suggestion-item px-4 py-2 border-b last:border-b-0 ${i === activeIndex ? 'active' : ''}"
@@ -74,6 +83,7 @@ function renderSuggestions() {
 
 function updateMatches(query) {
   const q = query.trim().toLowerCase();
+  lastQuery = q;
   if (!q) { matches = []; activeIndex = -1; show(el.suggestions, false); return; }
   matches = players
     .filter((p) => p.fullName.toLowerCase().includes(q))
@@ -122,6 +132,7 @@ async function loadPlayer(player) {
     const games = splits.map((s, i) => normalizeGame(s, teamAbbrev, i));
     renderHeatmap(player, games);
   } catch (err) {
+    if (requestId !== currentRequestId) return;
     console.error(err);
     showError('Could not load game log. Please try again.');
   } finally {
@@ -181,7 +192,7 @@ el.grid.addEventListener('mousemove', (e) => {
   if (box) moveTooltip(e.clientX, e.clientY);
 });
 el.grid.addEventListener('mouseout', (e) => {
-  if (e.target.closest('.cell')) hideTooltip();
+  if (e.target.closest('.cell') && !(e.relatedTarget && e.relatedTarget.closest('.cell'))) hideTooltip();
 });
 el.grid.addEventListener('focusin', (e) => {
   const box = e.target.closest('.cell');
