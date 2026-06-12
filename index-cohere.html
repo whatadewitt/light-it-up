@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MLB Player – Total Bases per Game (2026)</title>
+
+    <!-- Tailwind CSS & Chart.js -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* Minor custom tweaks & spinner animation */
+        .hidden { display: none; }
+        .loading-spinner {
+            border: 4px solid rgba(0,0,0,.1);
+            width: 36px; height: 36px;
+            border-left-color: #09f;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .suggestion-item:hover { background-color: #e5e7eb; cursor: pointer; }
+    </style>
+</head>
+
+<body class="bg-gray-100 text-gray-800 p-4 sm:p-6">
+    <!-- Main card -->
+    <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-5 sm:p-8">
+        <h1 class="text-2xl sm:text-3xl font-bold mb-5 text-center">
+            MLB Player – Total Bases per Game (2026)
+        </h1>
+
+        <!-- Search & season controls -->
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-4">
+            <!-- Player search -->
+            <div class="flex-1">
+                <label for="player-search" class="block text-sm font-medium mb-1">
+                    Search Player
+                </label>
+                <input id="player-search"
+                       type="text"
+                       placeholder="e.g., Mike Trout"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <!-- Season selector -->
+            <div class="sm:w-28">
+                <label for="season-select" class="block text-sm font-medium mb-1">
+                    Season
+                </label>
+                <select id="season-select"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="2026">2026</option>
+                    <option value="2025">2025</option>
+                    <option value="2024">2024</option>
+                    <option value="2023">2023</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Suggestion dropdown -->
+        <div id="suggestions"
+             class="mt-2 border border-gray-300 rounded-md bg-white max-h-48 overflow-y-auto hidden shadow">
+            <!-- Populated by JS -->
+        </div>
+
+        <!-- Loading spinner -->
+        <div id="loading" class="hidden flex justify-center mt-4">
+            <div class="loading-spinner"></div>
+        </div>
+
+        <!-- Error message -->
+        <div id="error-msg" class="text-red-600 mt-2 hidden"></div>
+
+        <!-- Chart canvas -->
+        <div class="mt-6 relative h-72 sm:h-80">
+            <canvas id="chart-canvas"></canvas>
+        </div>
+    </div>
+
+    <!-- Load button (explicitly triggers the fetch) -->
+    <div class="mt-5 flex justify-end max-w-4xl mx-auto">
+        <button id="load-btn"
+                class="px-5 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            Load Stats
+        </button>
+    </div>
+
+    <script>
+        // ---------- DOM elements ----------
+        const playerSearch = document.getElementById('player-search');
+        const seasonSelect = document.getElementById('season-select');
+        const suggestionsDiv = document.getElementById('suggestions');
+        const loadingDiv = document.getElementById('loading');
+        const errorDiv = document.getElementById('error-msg');
+        const chartCanvas = document.getElementById('chart-canvas');
+        const loadBtn = document.getElementById('load-btn');
+
+        let chartInstance = null;
+        let selectedPlayerId = null;
+        let selectedPlayerName = '';
+
+        // ---------- UI helpers ----------
+        function showLoading(show) {
+            loadingDiv.classList.toggle('hidden', !show);
+        }
+
+        function showError(msg) {
+            errorDiv.textContent = msg;
+            errorDiv.classList.remove('hidden');
+        }
+
+        function hideError() {
+            errorDiv.classList.add('hidden');
+            errorDiv.textContent = '';
+        }
+
+        // ---------- 1. Player search & type‑ahead ----------
+        playerSearch.addEventListener('input', async (e) => {
+            const query = e.target.value.trim();
+            if (!query) {
+                suggestionsDiv.classList.add('hidden');
+                return;
+            }
+
+            try {
+                // MLB people search endpoint
+                const resp = await fetch(
+                    `https://statsapi.mlb.com/api/v1/people?search=${encodeURIComponent(query)}`
+                );
+                if (!resp.ok) throw new Error('Search request failed');
+                const data = await resp.json();
+                const people = data.people || [];
+
+                if (people.length === 0) {
+                    suggestionsDiv.classList.add('hidden');
+                    return;
+                }
+
+                // Render suggestions
+                suggestionsDiv.innerHTML = people
+                    .map(p => `
+                        <div class="suggestion-item px-4 py-2 border-b last:border-b-0">
+                            <div class="font-semibold">${p.fullName}</div>
+                            <div class="text-sm text-gray-600">ID: ${p.id}</div>
+                        </div>
+                    `)
+                    .join('');
+
+                suggestionsDiv.classList.remove('hidden');
+
+                // Attach click handlers to each suggestion
+                Array.from(suggestionsDiv.children).forEach(item => {
+                    item.addEventListener('click', () => {
+                        const name = item.querySelector('.font-semibold').textContent;
+                        const id = parseInt(item.querySelector('.text-sm').textContent.split(': ')[1]);
+                        playerSearch.value = name;
+                        selectedPlayerId = id;
+                        selectedPlayerName = name;
+                        suggestionsDiv.classList.add('hidden');
+                        hideError();
+                    });
+                });
+
+            } catch (err) {
+                console.error(err);
+                hideError();
+            }
+        });
+
+        // Hide suggestions when clicking outside the input or dropdown
+        document.addEventListener('click', (e) => {
+            if (!playerSearch.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+                suggestionsDiv.classList.add('hidden');
+            }
+        });
+
+        // ---------- 2. Load per‑game total bases ----------
+        async function loadPlayerStats() {
+            if (!selectedPlayerId) {
+                showError('Please select a player from the list.');
+                return;
+            }
+
+            const season = seasonSelect.value;
+            hideError();
+            showLoading(true);
+
+            try {
+                // Game‑by‑game stats endpoint
+                const url = `https://statsapi.mlb.com/api/v1/player/${selectedPlayerId}/stats?season=${season}&stats=gameByGame`;
+                const resp = await fetch(url);
+                if (!resp.ok) throw new Error('Stats request failed');
+                const data = await resp.json();
+
+                if (!data.stats || data.stats.length === 0) {
+                    showError(`No stats found for ${selectedPlayerName} in ${season}.`);
+                    return;
+                }
+
+                const splits = data.stats[0].splits; // array of per‑game objects
+                const games = [];
+                const bases = [];
+
+                splits.forEach((sp, idx) => {
+                    const tb = sp.stat.totalBases !== undefined ? sp.stat.totalBases : 0;
+                    const label = sp.date ? sp.date : `Game ${idx + 1}`;
+                    games.push(label);
+                    bases.push(tb);
+                });
+
+                renderChart(selectedPlayerName, games, bases);
+
+            } catch (err) {
+                console.error(err);
+                showError('Could not load player stats. Please try again.');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // ---------- 3. Render Chart.js bar chart ----------
+        function renderChart(playerName, labels, data) {
+            if (chartInstance) chartInstance.destroy();
+
+            const ctx = chartCanvas.getContext('2d');
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Total Bases',
+                        data: data,
+                        backgroundColor: 'rgba(99, 102, 241, 0.7)', // Tailwind indigo‑500
+                        borderColor: 'rgba(99, 102, 241, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Total Bases' }
+                        },
+                        x: {
+                            title: { display: true, text: 'Game (date)' }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `${playerName} – Total Bases per Game (${data.length} games, ${seasonSelect.value})`
+                        },
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        // ---------- 4. Attach the load button ----------
+        loadBtn.addEventListener('click', loadPlayerStats);
+    </script>
+</body>
+</html>
+
