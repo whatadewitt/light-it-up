@@ -8,3 +8,22 @@ export function shadeForTotalBases(tb) {
   if (n <= 6) return '#30a14e';
   return '#216e39';
 }
+
+export function buildBattingLine(stat = {}) {
+  const n = (v) => {
+    const x = Number(v);
+    return Number.isFinite(x) ? x : 0;
+  };
+  const head = `${n(stat.hits)} / ${n(stat.atBats)}`;
+  const events = [
+    ['2B', n(stat.doubles)],
+    ['3B', n(stat.triples)],
+    ['HR', n(stat.homeRuns)],
+    ['BB', n(stat.baseOnBalls)],
+    ['HBP', n(stat.hitByPitch)],
+  ];
+  const tokens = events
+    .filter(([, count]) => count > 0)
+    .map(([label, count]) => (count > 1 ? `${count} ${label}` : label));
+  return tokens.length ? `${head}, ${tokens.join(', ')}` : head;
+}
