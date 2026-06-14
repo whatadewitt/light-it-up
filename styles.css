@@ -446,7 +446,16 @@ a:hover { text-decoration: underline; }
   color: var(--ink-faint);
   text-align: center;
 }
-.colophon a { color: var(--ink-dim); }
+.colophon a {
+  color: var(--ink-dim);
+  text-decoration: none;
+  transition: color 0.16s var(--ease-out);
+}
+.colophon a:hover,
+.colophon a:focus-visible {
+  color: var(--phosphor);
+  text-decoration: underline;
+}
 
 /* =========================================================================
    Reduced motion
