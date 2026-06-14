@@ -65,11 +65,17 @@ own luminance-stepped (colorblind-safe) ramp like the existing green one.
 This is a **client-only static site with no backend**, so every data source MUST be fetchable
 from the browser (CORS-enabled). MLB StatsAPI works. **Verify CORS + the needed endpoints**
 (player list, per-player game log, team schedule / game IDs) for NHL (`api-web.nhle.com`),
-NFL, and NBA **before building**. NBA's `stats.nba.com` is typically CORS-blocked; ESPN's
-unofficial endpoints are a common fallback. NFL "total yards" must sum a player's passing +
-receiving + rushing yards per game. If a league can't be done client-only, **stop and surface
-the options** (different source, or whether a tiny proxy is acceptable given the static
-deploy) rather than silently adding a backend.
+NFL, and NBA **before building** each provider. NBA's `stats.nba.com` is typically
+CORS-blocked; ESPN's unofficial endpoints are a common fallback. NFL "total yards" must sum a
+player's passing + receiving + rushing yards per game.
+
+**If a league's data source fails / isn't browser-fetchable: don't block on it.** Document
+what you found (which league, which endpoints/sources you tried, the exact failure — CORS,
+auth, no free API, etc.) right here in this brief (or a `docs/data-sources.md`), then move on
+and ship the leagues that DO work. Build the full UI + theming for all four leagues anyway,
+but render any unavailable league as a graceful disabled / "data source pending" state in the
+switcher rather than a broken one. **Do not silently add a backend/proxy** to force a dead
+source — that's a separate decision the user will sort out later.
 
 ## Constraints / definition of done
 
