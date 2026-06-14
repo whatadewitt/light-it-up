@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-13T00:00:00Z",
+  "title": "Design System: Light it Up",
+  "extensions": {
+    "colorMeta": {
+      "outfield-black":  { "role": "neutral", "displayName": "Outfield Black", "canonical": "#090d12", "tonalRamp": ["#05080b","#090d12","#0e151b","#111a23","#16212c","#1b2733","#243240","#33485a"] },
+      "press-box-slate": { "role": "neutral", "displayName": "Press-Box Slate", "canonical": "#111a23", "tonalRamp": ["#090d12","#0d141b","#111a23","#16212c","#1b2733","#243240","#33485a","#4a6378"] },
+      "press-box-slate-raised": { "role": "neutral", "displayName": "Press-Box Slate Raised", "canonical": "#16212c" },
+      "stadium-light":   { "role": "neutral", "displayName": "Stadium Light", "canonical": "#eaf1f7", "tonalRamp": ["#2a323a","#3d4751","#525e6a","#697785","#7c8b9a","#9aa9b7","#c2cdd7","#eaf1f7"] },
+      "stadium-light-dim":   { "role": "neutral", "displayName": "Stadium Light Dim", "canonical": "#a7b7c6" },
+      "stadium-light-faint": { "role": "neutral", "displayName": "Stadium Light Faint", "canonical": "#7c8b9a" },
+      "scoreboard-phosphor": { "role": "primary", "displayName": "Scoreboard Phosphor", "canonical": "#5be684", "tonalRamp": ["#0a1f12","#123a20","#1a5630","#237544","#2f9457","#45c46b","#5be684","#9dffba"] },
+      "phosphor-deep":   { "role": "primary", "displayName": "Phosphor Deep", "canonical": "#39c463" },
+      "dark-socket":     { "role": "neutral", "displayName": "Dark Socket", "canonical": "#0e151b" },
+      "did-not-play":    { "role": "neutral", "displayName": "Did Not Play", "canonical": "#283440" },
+      "ignition-0":      { "role": "primary", "displayName": "Ignition 0 — Dark Filament", "canonical": "#17241d" },
+      "ignition-1":      { "role": "primary", "displayName": "Ignition 1", "canonical": "#2f7d4a" },
+      "ignition-2":      { "role": "primary", "displayName": "Ignition 2", "canonical": "#39c463" },
+      "ignition-3":      { "role": "primary", "displayName": "Ignition 3", "canonical": "#5be684" },
+      "ignition-4":      { "role": "primary", "displayName": "Ignition 4 — White-Hot", "canonical": "#9dffba" },
+      "warning-track":   { "role": "tertiary", "displayName": "Warning Track", "canonical": "#ff7a6b" }
+    },
+    "typographyMeta": {
+      "display":  { "displayName": "Display", "purpose": "The masthead 'Light it Up' only — Archivo Black, signage scale." },
+      "headline": { "displayName": "Headline", "purpose": "The player nameplate — Archivo Black." },
+      "title":    { "displayName": "Title", "purpose": "Big stat values; Hanken Grotesk 700 with tabular figures." },
+      "body":     { "displayName": "Body", "purpose": "Subhead and prose; Hanken Grotesk 400, measure ~52ch." },
+      "label":    { "displayName": "Label", "purpose": "Uppercase tracked micro-text: stat labels, tag, search label." }
+    },
+    "shadows": [
+      { "name": "bulb-glow-1", "value": "0 0 5px -1px rgba(47,125,74,0.55)", "purpose": "Emitted light on a low-value played cell." },
+      { "name": "bulb-glow-4", "value": "0 0 14px -1px rgba(157,255,186,0.8)", "purpose": "Emitted light on the brightest (7+ base) cell." },
+      { "name": "bulb-glow-hover", "value": "0 0 18px 2px rgba(157,255,186,1)", "purpose": "Hover bloom on a played cell." },
+      { "name": "float-dropdown", "value": "0 18px 40px -16px rgba(0,0,0,0.7)", "purpose": "The suggestions overlay." },
+      { "name": "float-tooltip", "value": "0 12px 30px -12px rgba(0,0,0,0.8)", "purpose": "The data-chip tooltip." },
+      { "name": "focus-halo", "value": "0 0 0 3px rgba(91,230,132,0.14)", "purpose": "Soft phosphor halo on the focused search field." }
+    ],
+    "motion": [
+      { "name": "ease-out", "value": "cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Default easing (ease-out-quint-ish). No bounce." },
+      { "name": "dur-state", "value": "0.4s", "purpose": "Cell ignite / fade transition duration." },
+      { "name": "dur-hover", "value": "0.14s", "purpose": "Hover lift/bloom on cells." },
+      { "name": "reveal-step", "value": "4ms", "purpose": "Per-cell stagger for the 1→N ignite sweep." },
+      { "name": "reveal-cap", "value": "640ms", "purpose": "Hard ceiling on the total ignite sweep, even for 162 slots." }
+    ],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "Heatmap Cell",
+      "kind": "custom",
+      "refersTo": "cell",
+      "description": "The signature bulb. One slot per team game: hollow socket = not yet played, slate = did not play, ignited by luminance when played.",
+      "html": "<div style=\"display:flex;gap:5px\"><span class=\"ds-cell\" data-state=\"future\"></span><span class=\"ds-cell\" data-state=\"missed\"></span><span class=\"ds-cell\" data-state=\"played\" data-level=\"0\"></span><span class=\"ds-cell\" data-state=\"played\" data-level=\"1\"></span><span class=\"ds-cell\" data-state=\"played\" data-level=\"2\"></span><span class=\"ds-cell\" data-state=\"played\" data-level=\"3\"></span><span class=\"ds-cell\" data-state=\"played\" data-level=\"4\" tabindex=\"0\"></span></div>",
+      "css": ".ds-cell{width:17px;height:17px;border-radius:4px;background:#0e151b;box-shadow:inset 0 0 0 1px rgba(255,255,255,.025);transition:background .4s cubic-bezier(.22,1,.36,1),box-shadow .4s cubic-bezier(.22,1,.36,1),transform .14s cubic-bezier(.22,1,.36,1)}.ds-cell[data-state='missed']{background:#283440;box-shadow:none}.ds-cell[data-state='played'][data-level='0']{background:#17241d;box-shadow:inset 0 0 0 1px rgba(255,255,255,.045)}.ds-cell[data-state='played'][data-level='1']{background:#2f7d4a;box-shadow:0 0 5px -1px rgba(47,125,74,.55)}.ds-cell[data-state='played'][data-level='2']{background:#39c463;box-shadow:0 0 7px -1px rgba(57,196,99,.6)}.ds-cell[data-state='played'][data-level='3']{background:#5be684;box-shadow:0 0 10px -1px rgba(91,230,132,.65)}.ds-cell[data-state='played'][data-level='4']{background:#9dffba;box-shadow:0 0 14px -1px rgba(157,255,186,.8)}.ds-cell[data-state='played']{cursor:pointer}.ds-cell[data-state='played']:hover,.ds-cell[data-state='played']:focus-visible{transform:translateY(-1px) scale(1.18);outline:none;box-shadow:0 0 18px 2px rgba(157,255,186,1)}"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "search-field",
+      "description": "Slate field with a leading glyph that turns phosphor on focus, plus a soft halo.",
+      "html": "<div class=\"ds-search\"><svg viewBox=\"0 0 20 20\" width=\"19\" height=\"19\" aria-hidden=\"true\"><path d=\"M8.5 3a5.5 5.5 0 0 1 4.23 9.02l3.62 3.62-1.06 1.06-3.62-3.62A5.5 5.5 0 1 1 8.5 3Zm0 1.6a3.9 3.9 0 1 0 0 7.8 3.9 3.9 0 0 0 0-7.8Z\" fill=\"currentColor\"/></svg><input placeholder=\"e.g. Aaron Judge\"></div>",
+      "css": ".ds-search{display:flex;align-items:center;gap:.6rem;padding:0 .95rem;background:#111a23;border:1px solid #243240;border-radius:10px;color:#7c8b9a;transition:border-color .18s,box-shadow .18s}.ds-search:focus-within{border-color:rgba(91,230,132,.38);box-shadow:0 0 0 3px rgba(91,230,132,.14);color:#5be684}.ds-search input{flex:1;min-width:0;border:0;background:transparent;color:#eaf1f7;font:400 16px/1.55 Hanken Grotesk,sans-serif;padding:.85rem 0;outline:none}.ds-search input::placeholder{color:#7c8b9a}"
+    },
+    {
+      "name": "Suggestion Row",
+      "kind": "nav",
+      "refersTo": "suggestion",
+      "description": "A flush listbox row; active/hover is a phosphor wash with the team abbrev turning phosphor.",
+      "html": "<div class=\"ds-suggestion is-active\"><span class=\"ds-suggestion__name\">Aaron Judge</span><span class=\"ds-suggestion__team\">NYY</span></div>",
+      "css": ".ds-suggestion{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.6rem .7rem;border-radius:4px;background:#16212c;font:400 16px/1.4 Hanken Grotesk,sans-serif;color:#eaf1f7;cursor:pointer}.ds-suggestion__name{font-weight:500}.ds-suggestion__team{font-weight:700;font-size:.72rem;letter-spacing:.05em;color:#7c8b9a;font-variant-numeric:tabular-nums}.ds-suggestion:hover,.ds-suggestion.is-active{background:rgba(91,230,132,.14)}.ds-suggestion.is-active .ds-suggestion__team{color:#5be684}"
+    },
+    {
+      "name": "Nameplate Stat",
+      "kind": "custom",
+      "refersTo": "title",
+      "description": "A scoreboard stat: phosphor tabular value over an uppercase faint label.",
+      "html": "<div class=\"ds-stat\"><span class=\"ds-stat__value\">141</span><span class=\"ds-stat__label\">Total Bases</span></div>",
+      "css": ".ds-stat{text-align:right;line-height:1.12}.ds-stat__value{display:block;font:700 1.5rem/1 Hanken Grotesk,sans-serif;font-variant-numeric:tabular-nums;color:#5be684}.ds-stat__label{font:600 .64rem/1.1 Hanken Grotesk,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#7c8b9a;white-space:nowrap}"
+    },
+    {
+      "name": "Tag",
+      "kind": "chip",
+      "refersTo": "tag",
+      "description": "A phosphor-wash metadata pill (never a button).",
+      "html": "<span class=\"ds-tag\">MLB · 2026</span>",
+      "css": ".ds-tag{display:inline-block;font:700 .72rem/1 Hanken Grotesk,sans-serif;letter-spacing:.08em;font-variant-numeric:tabular-nums;padding:.34em .7em;color:#5be684;background:rgba(91,230,132,.14);border:1px solid rgba(91,230,132,.38);border-radius:999px;white-space:nowrap}"
+    },
+    {
+      "name": "Tooltip Chip",
+      "kind": "custom",
+      "refersTo": "tooltip",
+      "description": "The broadcast data chip shown on a played cell: matchup in phosphor, batting line in dim ink.",
+      "html": "<div class=\"ds-tooltip\"><div class=\"ds-tooltip__matchup\">vs. BOS</div><div class=\"ds-tooltip__line\">3 / 4, 2B, HR</div></div>",
+      "css": ".ds-tooltip{display:inline-block;max-width:17rem;padding:.5rem .7rem;background:#16212c;border:1px solid rgba(91,230,132,.38);border-radius:4px;box-shadow:0 12px 30px -12px rgba(0,0,0,.8);font:400 .82rem/1.4 Hanken Grotesk,sans-serif}.ds-tooltip__matchup{font-weight:700;color:#5be684;font-variant-numeric:tabular-nums}.ds-tooltip__line{color:#a7b7c6;font-variant-numeric:tabular-nums;margin-top:.1rem}"
+    },
+    {
+      "name": "Alert",
+      "kind": "custom",
+      "refersTo": "alert",
+      "description": "A warning-track error panel with a leading glowing dot. Never flashes.",
+      "html": "<div class=\"ds-alert\">No 2026 games for that player yet — check back after Opening Day.</div>",
+      "css": ".ds-alert{display:flex;align-items:center;gap:.6rem;padding:.9rem 1.1rem;background:#2a1512;border:1px solid #5a261f;border-radius:10px;color:#ffd9d2;font:400 .95rem/1.5 Hanken Grotesk,sans-serif}.ds-alert::before{content:'';flex:none;width:9px;height:9px;border-radius:50%;background:#ff7a6b;box-shadow:0 0 8px 0 #ff7a6b}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Night Scoreboard",
+    "overview": "This is an incandescent stadium scoreboard after dark. The page is the black field at night; a player's season ignites across it as a panel of bulbs, each one's brightness scaled to the total bases of a single game. The whole system exists to make one thing — the heatmap — feel alive and worth looking at, the way a scoreboard does when the home team is hot. Energy comes from a single committed signal color and the way light reads off a dark field, not from ornament. Everything that isn't the board stays quiet so the board can shout. The system explicitly rejects the generic SaaS dashboard (gradient-card grids, the hero-metric template, cookie-cutter admin chrome) and the cluttered stat sheet (ESPN / Baseball-Reference table overload). It is also a deliberate move away from its own origin: a GitHub-contributions grid in default greens on white. Here the grid is reframed as a stadium board — warm, emissive, and dark.",
+    "keyCharacteristics": [
+      "One hero (the heatmap), one signal color (phosphor green), one dark field.",
+      "Intensity is carried by luminance, never hue alone — colorblind-safe by construction.",
+      "Athletic, signage-grade display type over disciplined, legible body type.",
+      "Light, not shadow: depth is tonal layering plus the glow a bulb emits.",
+      "Quiet chrome, loud data."
+    ],
+    "rules": [
+      { "name": "The Luminance Rule", "body": "The Ignition Ramp is read by brightness, not hue. Every step is lighter than the last. Never encode the value of a game in hue alone — a red-green colorblind viewer must still read the board correctly.", "section": "colors" },
+      { "name": "The One Signal Rule", "body": "Phosphor green is the only saturated color on the surface. It means 'live / focused / this is the data.' If you find yourself reaching for phosphor as decoration, stop — use a slate or an ink tone instead.", "section": "colors" },
+      { "name": "The Three-State Rule", "body": "Every slot is exactly one of: played (lit bulb on the Ignition ramp — tooltip + keyboard focus, including Ignition 0 for a hitless game), did not play (#283440 filled slate — hover tooltip, not focusable), or not yet played (#0e151b hollow socket — inert). The board lays out one slot per team game in schedule order, so reading the season as played / missed / upcoming is the point.", "section": "colors" },
+      { "name": "The Scoreboard Weight Rule", "body": "Archivo Black appears exactly twice — the masthead and the nameplate. Body, labels, and stats are always regular Archivo.", "section": "typography" },
+      { "name": "The Tabular Rule", "body": "Every number uses tabular figures. Scoreboards don't let digits wobble.", "section": "typography" },
+      { "name": "The Light-Not-Shadow Rule", "body": "Surfaces are flat and separated by tone. When you need depth, ask whether the element emits (a bulb → glow) or floats (a menu → drop shadow). Decorative ambient shadows on flat panels are forbidden.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do let the heatmap be the hero — give it the most room and quiet everything else.",
+      "Do carry game value with luminance, and pair color with a non-color signal (the tooltip's exact number).",
+      "Do keep phosphor green rare and meaningful (live data, focus, links).",
+      "Do reserve Archivo Black for the masthead and nameplate only.",
+      "Do convey depth with tone and emitted glow, not ambient drop shadows.",
+      "Do honor prefers-reduced-motion: the ignite sweep collapses to an instant swap.",
+      "Do keep AA contrast and keep every interactive slot keyboard-reachable with a visible focus ring."
+    ],
+    "donts": [
+      "Don't build a generic SaaS dashboard: no gradient-card grids, no hero-metric template, no admin-panel chrome.",
+      "Don't build a cluttered stat sheet: no ESPN / Baseball-Reference table overload.",
+      "Don't regress to the Tailwind-placeholder look (gray-on-white, default green focus ring, system fonts).",
+      "Don't use gradient text — solid ink only; emphasis via weight and size.",
+      "Don't encode a game's value in hue alone, and never give a future-game socket a tooltip, glow, or keyboard focus.",
+      "Don't add decorative glassmorphism or ambient shadows on flat panels."
+    ]
+  }
+}

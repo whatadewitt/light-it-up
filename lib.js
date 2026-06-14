@@ -1,12 +1,22 @@
 // Pure helpers for the MLB total-bases heatmap. No DOM, no fetch.
 
-export function shadeForTotalBases(tb) {
+// Luminance-stepped phosphor-green ramp (mirrors --tb-0..--tb-4 in styles.css).
+// Index 0 is an unlit bulb (a game with no total bases); 4 is the brightest.
+export const TB_RAMP = ['#17241d', '#2f7d4a', '#39c463', '#5be684', '#9dffba'];
+
+// Map a game's total bases to a ramp level 0–4. The intensity is carried by
+// luminance, so the scale stays readable for red-green color blindness.
+export function levelForTotalBases(tb) {
   const n = Number(tb);
-  if (!Number.isFinite(n) || n <= 0) return '#ebedf0';
-  if (n <= 2) return '#9be9a8';
-  if (n <= 4) return '#40c463';
-  if (n <= 6) return '#30a14e';
-  return '#216e39';
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  if (n <= 2) return 1;
+  if (n <= 4) return 2;
+  if (n <= 6) return 3;
+  return 4;
+}
+
+export function shadeForTotalBases(tb) {
+  return TB_RAMP[levelForTotalBases(tb)];
 }
 
 export function buildBattingLine(stat = {}) {

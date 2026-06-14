@@ -1,0 +1,463 @@
+/* =========================================================================
+   Total Bases — MLB 2026
+   A phosphor-green stadium-scoreboard heatmap. Dark, committed, colorblind-safe
+   (the total-bases ramp is distinguished by luminance, not hue alone).
+   ========================================================================= */
+
+:root {
+  /* --- Surface (deep night field) --- */
+  --field:        #090d12;
+  --field-glow:   #0c1825;   /* faint radial wash behind the board */
+  --surface:      #111a23;
+  --surface-2:    #16212c;
+  --line:         #243240;
+  --line-soft:    #1b2733;
+
+  /* --- Ink --- */
+  --ink:          #eaf1f7;
+  --ink-dim:      #a7b7c6;   /* secondary text — verified > 7:1 on --field */
+  --ink-faint:    #7c8b9a;   /* tertiary micro-text only */
+
+  /* --- Phosphor accent --- */
+  --phosphor:     #5be684;
+  --phosphor-wash: rgba(91, 230, 132, 0.14);
+  --phosphor-line: rgba(91, 230, 132, 0.38);
+
+  /* --- Empty socket: a game not yet played (distinct from a played hitless game) --- */
+  --socket: #0e151b;
+  /* --- "Out": a team game the player missed (e.g. injured) — present but unlit --- */
+  --out: #283440;
+
+  /* --- Total-bases ramp (luminance-stepped; mirrors lib.js shadeForTotalBases) --- */
+  --tb-0:  #17241d;   /* played, no total bases — an unlit bulb */
+  --tb-1:  #2f7d4a;   /* 1–2 */
+  --tb-2:  #39c463;   /* 3–4 */
+  --tb-3:  #5be684;   /* 5–6 */
+  --tb-4:  #9dffba;   /* 7+  */
+
+  /* --- Alert --- */
+  --alert:        #ff7a6b;
+  --alert-bg:     #2a1512;
+  --alert-line:   #5a261f;
+
+  /* --- Type --- */
+  --font-display: "Archivo Black", system-ui, sans-serif;
+  --font-body:    "Hanken Grotesk", system-ui, -apple-system, sans-serif;
+
+  /* --- Geometry --- */
+  --cell:      clamp(13px, 3.4vw, 17px);
+  --cell-gap:  clamp(3px, 0.9vw, 5px);
+  --radius:    10px;
+  --radius-sm: 4px;
+
+  /* --- Motion --- */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);   /* ease-out-quint-ish */
+  --dur:      0.4s;
+
+  /* --- Z-scale (semantic) --- */
+  --z-dropdown: 100;
+  --z-tooltip:  300;
+
+  --measure: 60ch;
+}
+
+/* --- Reset --- */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  font-family: var(--font-body);
+  font-size: clamp(15px, 0.4vw + 14px, 16px);
+  line-height: 1.55;
+  color: var(--ink);
+  background:
+    radial-gradient(120% 90% at 50% -10%, var(--field-glow) 0%, transparent 55%),
+    var(--field);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.hidden { display: none !important; }
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+h1 { margin: 0; }
+a { color: var(--phosphor); text-underline-offset: 2px; }
+a:hover { text-decoration: underline; }
+:where(a, button, input, [tabindex]):focus-visible {
+  outline: 2px solid var(--phosphor);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.skip-link {
+  position: absolute;
+  left: 12px; top: -64px;
+  z-index: 999;
+  padding: 10px 16px;
+  background: var(--surface-2);
+  color: var(--ink);
+  border: 1px solid var(--phosphor-line);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  transition: top 0.18s var(--ease-out);
+}
+.skip-link:focus { top: 12px; }
+
+/* --- Shell --- */
+.shell {
+  width: min(100% - 2rem, 760px);
+  margin-inline: auto;
+  padding-block: clamp(2.25rem, 6vw, 4rem) 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.75rem, 4vw, 2.75rem);
+}
+
+/* =========================================================================
+   Masthead
+   ========================================================================= */
+.masthead__lockup {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.6rem 0.85rem;
+}
+.masthead__title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(2rem, 6vw, 3.25rem);
+  line-height: 0.94;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+  color: var(--ink);
+}
+.masthead__sub {
+  margin: 1.05rem 0 0;
+  max-width: 52ch;
+  color: var(--ink-dim);
+  font-size: 1rem;
+  text-wrap: pretty;
+}
+.masthead__sub strong { color: var(--phosphor); font-weight: 600; }
+
+/* =========================================================================
+   Search
+   ========================================================================= */
+.main { display: flex; flex-direction: column; gap: clamp(1.5rem, 3.5vw, 2.25rem); min-width: 0; }
+
+.search { position: relative; }
+.search__label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink-dim);
+  margin-bottom: 0.5rem;
+}
+.search__field {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0 0.95rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  transition: border-color 0.18s var(--ease-out), box-shadow 0.18s var(--ease-out);
+}
+.search__field:focus-within {
+  border-color: var(--phosphor-line);
+  box-shadow: 0 0 0 3px var(--phosphor-wash);
+}
+.search__icon { width: 19px; height: 19px; color: var(--ink-faint); flex: none; }
+.search__field:focus-within .search__icon { color: var(--phosphor); }
+#search-field {
+  flex: 1;
+  min-width: 0;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  padding: 0.85rem 0;
+}
+#search-field::placeholder { color: var(--ink-faint); }
+#search-field:focus { outline: none; }
+
+/* Suggestions */
+.suggestions {
+  position: absolute;
+  left: 0; right: 0; top: calc(100% + 0.5rem);
+  z-index: var(--z-dropdown);
+  margin: 0;
+  padding: 0.35rem;
+  list-style: none;
+  max-height: 18rem;
+  overflow-y: auto;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.7);
+}
+.suggestion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.suggestion__name { font-weight: 500; }
+.suggestion__team {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+.suggestion:hover,
+.suggestion.is-active {
+  background: var(--phosphor-wash);
+}
+.suggestion.is-active .suggestion__team { color: var(--phosphor); }
+.suggestion--empty {
+  padding: 0.7rem;
+  color: var(--ink-dim);
+  cursor: default;
+}
+
+/* =========================================================================
+   Panel (the board frame)
+   ========================================================================= */
+.panel {
+  padding: clamp(1.1rem, 3vw, 1.75rem);
+  background:
+    radial-gradient(140% 120% at 50% 0%, rgba(91, 230, 132, 0.05) 0%, transparent 60%),
+    var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+/* =========================================================================
+   The grid
+   ========================================================================= */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, var(--cell));
+  gap: var(--cell-gap);
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  max-width: calc(30 * var(--cell) + 29 * var(--cell-gap));
+  margin-inline: auto;
+}
+.board .grid { justify-content: start; margin-inline: 0; }
+
+.cell {
+  width: var(--cell);
+  height: var(--cell);
+  border-radius: var(--radius-sm);
+  outline: none;
+  /* Empty socket by default — a game not yet played. */
+  background: var(--socket);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+  transition:
+    background var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out),
+    transform 0.14s var(--ease-out);
+}
+
+/* Missed — the team played, the player didn't. Present but unlit (no green, no glow). */
+.cell[data-state="missed"] { background: var(--out); box-shadow: none; }
+
+/* Played games — lit by total bases (luminance carries the value). */
+.cell[data-state="played"][data-level="0"] { background: var(--tb-0); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.045); }
+.cell[data-state="played"][data-level="1"] { background: var(--tb-1); box-shadow: 0 0 5px -1px rgba(47, 125, 74, 0.55); }
+.cell[data-state="played"][data-level="2"] { background: var(--tb-2); box-shadow: 0 0 7px -1px rgba(57, 196, 99, 0.6); }
+.cell[data-state="played"][data-level="3"] { background: var(--tb-3); box-shadow: 0 0 10px -1px rgba(91, 230, 132, 0.65); }
+.cell[data-state="played"][data-level="4"] { background: var(--tb-4); box-shadow: 0 0 14px -1px rgba(157, 255, 186, 0.8); }
+
+/* Hover affordance: played cells lift + bloom; missed cells get a quiet highlight. */
+.grid .cell[data-state="played"] { cursor: pointer; }
+.grid .cell[data-state="played"]:hover,
+.grid .cell[data-state="played"]:focus-visible {
+  transform: translateY(-1px) scale(1.18);
+  z-index: 1;
+}
+.grid .cell[data-state="played"]:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+.grid .cell[data-state="played"][data-level="0"]:hover { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14); }
+.grid .cell[data-state="played"][data-level="1"]:hover { box-shadow: 0 0 9px 0 rgba(47, 125, 74, 0.8); }
+.grid .cell[data-state="played"][data-level="2"]:hover { box-shadow: 0 0 11px 0 rgba(57, 196, 99, 0.85); }
+.grid .cell[data-state="played"][data-level="3"]:hover { box-shadow: 0 0 14px 1px rgba(91, 230, 132, 0.9); }
+.grid .cell[data-state="played"][data-level="4"]:hover { box-shadow: 0 0 18px 2px rgba(157, 255, 186, 1); }
+.grid .cell[data-state="missed"] { cursor: pointer; }
+.grid .cell[data-state="missed"]:hover { background: #313f4d; }
+
+/* =========================================================================
+   Nameplate (broadcast lower-third)
+   ========================================================================= */
+.nameplate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.9rem 1.1rem;
+  min-width: 0;
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.4rem;
+  border-bottom: 1px solid var(--line-soft);
+}
+.nameplate__name {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(1.55rem, 5.5vw, 2.4rem);
+  line-height: 1;
+  letter-spacing: -0.015em;
+  margin: 0;
+  min-width: 0;
+  text-wrap: balance;
+}
+.nameplate__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem clamp(1rem, 4vw, 1.6rem);
+  margin-left: auto;
+}
+.stat { text-align: right; line-height: 1.12; }
+.stat__value {
+  display: block;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: clamp(1.25rem, 4.5vw, 1.5rem);
+  font-variant-numeric: tabular-nums;
+  color: var(--phosphor);
+}
+.stat__label {
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+.nameplate__loading {
+  align-self: center;
+  font-size: 0.85rem;
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+.nameplate__loading::after {
+  content: "";
+  display: inline-block;
+  width: 7px; height: 7px;
+  margin-left: 0.5rem;
+  border-radius: 50%;
+  background: var(--phosphor);
+  vertical-align: middle;
+  animation: pulse-dot 1.1s var(--ease-out) infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 0.25; box-shadow: none; }
+  50%      { opacity: 1; box-shadow: 0 0 8px 0 var(--phosphor); }
+}
+
+/* =========================================================================
+   Legend
+   ========================================================================= */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 1.4rem;
+  margin-top: 1.5rem;
+  font-size: 0.78rem;
+  color: var(--ink-dim);
+}
+.legend__group { display: inline-flex; align-items: center; gap: 0.55rem; }
+.legend__scale { display: inline-flex; gap: 3px; }
+.legend__note { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--ink-faint); }
+.legend .cell { transition: none; }
+
+/* =========================================================================
+   Alert
+   ========================================================================= */
+.alert {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.9rem 1.1rem;
+  color: #ffd9d2;
+  background: var(--alert-bg);
+  border: 1px solid var(--alert-line);
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+}
+.alert::before {
+  content: "";
+  flex: none;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--alert);
+  box-shadow: 0 0 8px 0 var(--alert);
+}
+
+/* =========================================================================
+   Tooltip — broadcast data chip
+   ========================================================================= */
+.tooltip {
+  position: fixed;
+  z-index: var(--z-tooltip);
+  pointer-events: none;
+  max-width: 17rem;
+  padding: 0.5rem 0.7rem;
+  background: var(--surface-2);
+  border: 1px solid var(--phosphor-line);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 12px 30px -12px rgba(0, 0, 0, 0.8);
+  font-size: 0.82rem;
+}
+.tooltip__matchup {
+  font-weight: 700;
+  color: var(--phosphor);
+  font-variant-numeric: tabular-nums;
+}
+.tooltip__line {
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+  margin-top: 0.1rem;
+}
+
+/* =========================================================================
+   Colophon
+   ========================================================================= */
+.colophon {
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+  text-align: center;
+}
+.colophon a { color: var(--ink-dim); }
+
+/* =========================================================================
+   Reduced motion
+   ========================================================================= */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .cell { transition-delay: 0ms !important; }
+  .grid .cell[data-state="played"]:hover,
+  .grid .cell[data-state="played"]:focus-visible { transform: none; }
+}

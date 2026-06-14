@@ -1,7 +1,22 @@
-# tbgraph — MLB Total Bases Heatmap
+# Light it Up — MLB Total Bases Heatmap
 
-Search an active MLB player and see a GitHub-style heatmap of their total bases
-per game for the 2026 season. Hover a box for the opponent and batting line.
+> Repo/package name: `tbgraph`.
+
+Search an active MLB hitter and watch their 2026 season light up like a stadium
+scoreboard: one cell per **team game** in schedule order, brightness scaled to total
+bases. Games the player missed (injury, rest) show as muted "did not play" slots and
+future games as dark sockets, so an injury reads as a visible gap. Hover or focus a
+played cell for the matchup and batting line.
+
+The total-bases ramp is distinguished by **luminance**, not hue alone, so the
+scoreboard stays readable for red-green color blindness. All motion has a
+`prefers-reduced-motion` fallback, and the grid is fully keyboard-navigable.
+
+## Build
+
+No build step, no framework, no CDN. Plain ES modules (`app.js`, `lib.js`) and a
+single tokenized stylesheet (`styles.css`). Fonts (Archivo Black + Hanken Grotesk)
+load from Google Fonts.
 
 ## Run
 

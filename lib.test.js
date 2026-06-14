@@ -1,23 +1,41 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { shadeForTotalBases, buildBattingLine, matchupLabel, normalizeGame } from './lib.js';
+import { shadeForTotalBases, levelForTotalBases, TB_RAMP, buildBattingLine, matchupLabel, normalizeGame } from './lib.js';
 
-test('shadeForTotalBases maps total bases to GitHub green shades', () => {
-  assert.equal(shadeForTotalBases(0), '#ebedf0');
-  assert.equal(shadeForTotalBases(1), '#9be9a8');
-  assert.equal(shadeForTotalBases(2), '#9be9a8');
-  assert.equal(shadeForTotalBases(3), '#40c463');
-  assert.equal(shadeForTotalBases(4), '#40c463');
-  assert.equal(shadeForTotalBases(5), '#30a14e');
-  assert.equal(shadeForTotalBases(6), '#30a14e');
-  assert.equal(shadeForTotalBases(7), '#216e39');
-  assert.equal(shadeForTotalBases(12), '#216e39');
+test('levelForTotalBases buckets total bases into ramp levels 0–4', () => {
+  assert.equal(levelForTotalBases(0), 0);
+  assert.equal(levelForTotalBases(1), 1);
+  assert.equal(levelForTotalBases(2), 1);
+  assert.equal(levelForTotalBases(3), 2);
+  assert.equal(levelForTotalBases(4), 2);
+  assert.equal(levelForTotalBases(5), 3);
+  assert.equal(levelForTotalBases(6), 3);
+  assert.equal(levelForTotalBases(7), 4);
+  assert.equal(levelForTotalBases(12), 4);
 });
 
-test('shadeForTotalBases treats missing/negative as empty', () => {
-  assert.equal(shadeForTotalBases(undefined), '#ebedf0');
-  assert.equal(shadeForTotalBases(null), '#ebedf0');
-  assert.equal(shadeForTotalBases(-1), '#ebedf0');
+test('levelForTotalBases treats missing/negative as level 0', () => {
+  assert.equal(levelForTotalBases(undefined), 0);
+  assert.equal(levelForTotalBases(null), 0);
+  assert.equal(levelForTotalBases(-1), 0);
+});
+
+test('shadeForTotalBases maps total bases to the phosphor ramp', () => {
+  assert.equal(shadeForTotalBases(0), TB_RAMP[0]);
+  assert.equal(shadeForTotalBases(1), TB_RAMP[1]);
+  assert.equal(shadeForTotalBases(2), TB_RAMP[1]);
+  assert.equal(shadeForTotalBases(3), TB_RAMP[2]);
+  assert.equal(shadeForTotalBases(4), TB_RAMP[2]);
+  assert.equal(shadeForTotalBases(5), TB_RAMP[3]);
+  assert.equal(shadeForTotalBases(6), TB_RAMP[3]);
+  assert.equal(shadeForTotalBases(7), TB_RAMP[4]);
+  assert.equal(shadeForTotalBases(12), TB_RAMP[4]);
+});
+
+test('shadeForTotalBases treats missing/negative as the unlit shade', () => {
+  assert.equal(shadeForTotalBases(undefined), TB_RAMP[0]);
+  assert.equal(shadeForTotalBases(null), TB_RAMP[0]);
+  assert.equal(shadeForTotalBases(-1), TB_RAMP[0]);
 });
 
 const stat = (o = {}) => ({

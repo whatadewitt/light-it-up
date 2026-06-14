@@ -3,60 +3,78 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MLB Total Bases — 2026</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    .hidden { display: none !important; }
-    #loading { display: flex; }
-    .spinner {
-      border: 3px solid rgba(0,0,0,.1);
-      width: 28px; height: 28px;
-      border-left-color: #30a14e;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .suggestion-item:hover, .suggestion-item.active { background:#e5e7eb; cursor:pointer; }
-    .cell { display:inline-block; width:14px; height:14px; border-radius:3px; outline:none; }
-    .cell:focus { box-shadow:0 0 0 2px #1f6feb; }
-    #tooltip { position:fixed; z-index:50; pointer-events:none; }
-  </style>
+  <title>Light it Up — MLB total bases</title>
+  <meta name="description" content="Light it Up — search an active MLB hitter and watch their season light up like a scoreboard: total bases per game, at a glance.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='6'%20fill='%23090d12'/%3E%3Crect%20x='6'%20y='6'%20width='8'%20height='8'%20rx='2'%20fill='%232f7d4a'/%3E%3Crect%20x='18'%20y='6'%20width='8'%20height='8'%20rx='2'%20fill='%239dffba'/%3E%3Crect%20x='6'%20y='18'%20width='8'%20height='8'%20rx='2'%20fill='%235be684'/%3E%3Crect%20x='18'%20y='18'%20width='8'%20height='8'%20rx='2'%20fill='%2317241d'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
 </head>
-<body class="bg-gray-100 text-gray-800 p-4 sm:p-6">
-  <div class="max-w-4xl mx-auto bg-white rounded-lg shadow p-5 sm:p-8">
-    <h1 class="text-2xl font-bold mb-1">MLB Total Bases — 2026</h1>
-    <p class="text-sm text-gray-500 mb-5">Search an active player to see total bases per game.</p>
+<body>
+  <a class="skip-link" href="#search-field">Skip to search</a>
 
-    <div class="relative">
-      <label for="player-search" class="block text-sm font-medium mb-1">Search Player</label>
-      <input id="player-search" type="text" autocomplete="off"
-             placeholder="e.g., Aaron Judge"
-             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600">
-      <div id="suggestions"
-           class="absolute left-0 right-0 mt-1 border border-gray-300 rounded-md bg-white max-h-60 overflow-y-auto hidden shadow z-10"></div>
-    </div>
-
-    <div id="loading" class="hidden justify-center mt-6"><div class="spinner"></div></div>
-    <div id="error-msg" class="text-red-600 mt-4 hidden"></div>
-
-    <div id="result" class="mt-6 hidden">
-      <div id="player-header" class="mb-3"></div>
-      <div id="grid" class="grid grid-cols-[repeat(30,14px)] gap-[3px] w-max"></div>
-      <div class="flex items-center gap-1 mt-4 text-xs text-gray-500">
-        <span>Less</span>
-        <span class="cell" style="background:#ebedf0"></span>
-        <span class="cell" style="background:#9be9a8"></span>
-        <span class="cell" style="background:#40c463"></span>
-        <span class="cell" style="background:#30a14e"></span>
-        <span class="cell" style="background:#216e39"></span>
-        <span>More</span>
+  <div class="shell">
+    <header class="masthead">
+      <div class="masthead__lockup">
+        <h1 class="masthead__title">Light it Up</h1>
       </div>
-    </div>
+      <p class="masthead__sub">See <strong>total bases</strong> per game for any active MLB hitter.</p>
+    </header>
+
+    <main class="main">
+      <form class="search" role="search" autocomplete="off" onsubmit="return false">
+        <label class="search__label" for="search-field">Search player</label>
+        <div class="search__field">
+          <svg class="search__icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+            <path d="M8.5 3a5.5 5.5 0 0 1 4.23 9.02l3.62 3.62-1.06 1.06-3.62-3.62A5.5 5.5 0 1 1 8.5 3Zm0 1.6a3.9 3.9 0 1 0 0 7.8 3.9 3.9 0 0 0 0-7.8Z" fill="currentColor"/>
+          </svg>
+          <input id="search-field" type="text" placeholder="e.g. Aaron Judge"
+                 role="combobox" aria-expanded="false" aria-controls="suggestions"
+                 aria-autocomplete="list" aria-label="Search for an active MLB player">
+        </div>
+        <ul id="suggestions" class="suggestions hidden" role="listbox" aria-label="Player suggestions"></ul>
+      </form>
+
+      <!-- The board: all 162 game slots, always present. -->
+      <section id="board" class="panel board">
+        <header id="nameplate" class="nameplate hidden"></header>
+        <div id="grid" class="grid" role="group" aria-label="2026 season board"></div>
+        <div id="legend" class="legend hidden">
+          <span class="legend__group">
+            <span class="legend__label">Fewer bases</span>
+            <span class="legend__scale" aria-hidden="true">
+              <span class="cell" data-state="played" data-level="0"></span>
+              <span class="cell" data-state="played" data-level="1"></span>
+              <span class="cell" data-state="played" data-level="2"></span>
+              <span class="cell" data-state="played" data-level="3"></span>
+              <span class="cell" data-state="played" data-level="4"></span>
+            </span>
+            <span class="legend__label">More bases</span>
+          </span>
+          <span class="legend__note">
+            <span class="cell" data-state="missed" aria-hidden="true"></span>
+            Did not play
+          </span>
+          <span class="legend__note">
+            <span class="cell" data-state="future" aria-hidden="true"></span>
+            Not yet played
+          </span>
+        </div>
+      </section>
+
+      <div id="error-msg" class="alert hidden" role="alert"></div>
+      <p id="sr-status" class="sr-only" role="status" aria-live="polite"></p>
+    </main>
+
+    <footer class="colophon">
+      <span>Data: <a href="https://statsapi.mlb.com" rel="noopener">MLB StatsAPI</a> · not affiliated with MLB</span>
+    </footer>
   </div>
 
-  <div id="tooltip" role="tooltip" aria-live="polite" class="hidden bg-gray-900 text-white text-xs rounded px-2 py-1 shadow-lg">
-    <div id="tooltip-matchup" class="font-semibold"></div>
-    <div id="tooltip-line"></div>
+  <div id="tooltip" class="tooltip hidden" role="tooltip" aria-live="polite">
+    <div id="tooltip-matchup" class="tooltip__matchup"></div>
+    <div id="tooltip-line" class="tooltip__line"></div>
   </div>
 
   <script type="module" src="app.js"></script>
