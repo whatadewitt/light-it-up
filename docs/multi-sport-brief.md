@@ -46,10 +46,15 @@ own luminance-stepped (colorblind-safe) ramp like the existing green one.
    `[{state, value, opp, isHome, tooltipLine, date}]`, tooltip formatting). `app.js`/board
    logic should become sport-agnostic and driven by the selected provider; `lib.js` helpers
    become per-sport (and stay unit-tested). Suggest a `sports/` module layout.
-2. Decide the sport-switch UX (e.g. a segmented control) and how the theme recolors per
-   selected sport (swap accent + ramp tokens via a data-attribute / CSS custom properties on
-   `:root`). Update `DESIGN.md` + `.impeccable/design.json` for the multi-accent system (the
-   docs are currently green-specific — "Scoreboard Phosphor" / "The One Signal Rule").
+2. **Add a league switcher in the header/nav** so the user picks the league (MLB / NHL /
+   NFL / NBA). It's the primary navigation and should be persistent at the top of the page.
+   Each league's control carries **its own accent color** (MLB green, NHL magenta, NFL blue,
+   NBA orange), and selecting a league **recolors the whole theme to that accent** — the
+   board ramp, focus rings, the subhead metric emphasis, link hovers, etc. all shift to the
+   selected league's hue. Swap accent + ramp tokens via a `data-league` attribute / CSS
+   custom properties on `:root`. Update `DESIGN.md` + `.impeccable/design.json` for this
+   multi-accent system (the docs are currently green-specific — "Scoreboard Phosphor" /
+   "The One Signal Rule" → now one signal *per selected league*).
 3. Generalize the schedule-aligned slot model (played / did-not-play / not-yet-played) across
    leagues with different season lengths (MLB 162, NFL 17 + bye, NBA/NHL 82) and metrics with
    very different ranges (bases ~0–14, NHL pts ~0–6, NBA pts ~0–70, NFL yards ~0–400+). Each
