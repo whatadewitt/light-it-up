@@ -79,6 +79,7 @@ async function loadGamesRows() {
 export const nfl = {
   id: 'nfl', name: 'NFL', accent: 'nfl',
   seasonBoxes: 68, unit: 'quarter', metricLabel: 'total yards',
+  seasonLabel: '2025', metricShort: 'yards',
   levelForValue: (v) => levelForValue(v, NFL_THRESHOLDS),
 
   async loadPlayers() {

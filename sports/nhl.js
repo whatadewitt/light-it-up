@@ -40,6 +40,7 @@ export function buildNhlSlots(games, byGameId, tricode) {
 export const nhl = {
   id: 'nhl', name: 'NHL', accent: 'nhl',
   seasonBoxes: 82, unit: 'game', metricLabel: 'points',
+  seasonLabel: '2025–26', metricShort: 'points',
   levelForValue: (v) => levelForValue(v, NHL_THRESHOLDS),
 
   async loadPlayers() {

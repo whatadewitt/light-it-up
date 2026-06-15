@@ -65,6 +65,8 @@ export const mlb = {
   seasonBoxes: SEASON_GAMES,
   unit: 'game',
   metricLabel: 'total bases',
+  seasonLabel: '2026',
+  metricShort: 'bases',
   levelForValue: levelForTotalBases,
 
   async loadPlayers() {

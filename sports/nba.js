@@ -38,6 +38,7 @@ export function buildNbaSlots(events, pointsByEventId, teamAbbrev) {
 export const nba = {
   id: 'nba', name: 'NBA', accent: 'nba',
   seasonBoxes: 82, unit: 'game', metricLabel: 'points',
+  seasonLabel: '2025–26', metricShort: 'points',
   levelForValue: (v) => levelForValue(v, NBA_THRESHOLDS),
 
   async loadPlayers() {
