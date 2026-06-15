@@ -150,6 +150,21 @@ a:hover { text-decoration: underline; }
 .masthead__sub strong { color: var(--phosphor); font-weight: 600; }
 
 /* =========================================================================
+   League switcher — segmented tab control in the masthead
+   ========================================================================= */
+.league-switch { display:flex; gap:.4rem; flex-wrap:wrap; margin-top:1rem; }
+.league-tab { --tab:#5be684; font:700 .8rem/1 var(--font-body); letter-spacing:.04em; text-transform:uppercase;
+  padding:.5rem .85rem; border-radius:var(--radius-sm); cursor:pointer; color:var(--ink-dim);
+  background:var(--surface); border:1px solid var(--line);
+  border-left:3px solid color-mix(in srgb, var(--tab) 70%, transparent);
+  transition:background .16s var(--ease-out), color .16s var(--ease-out), border-color .16s var(--ease-out); }
+.league-tab[data-league-id="mlb"]{ --tab:#5be684; } .league-tab[data-league-id="nhl"]{ --tab:#ff5cc8; }
+.league-tab[data-league-id="nfl"]{ --tab:#5ca8ff; } .league-tab[data-league-id="nba"]{ --tab:#ff9d3c; }
+.league-tab:hover { color:var(--ink); border-color:var(--tab); }
+.league-tab[aria-selected="true"]{ color:#0a0f14; background:var(--tab); border-color:var(--tab); }
+.league-tab:focus-visible { outline:2px solid var(--tab); outline-offset:2px; }
+
+/* =========================================================================
    Search
    ========================================================================= */
 .main { display: flex; flex-direction: column; gap: clamp(1.5rem, 3.5vw, 2.25rem); min-width: 0; }
