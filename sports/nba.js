@@ -1,4 +1,4 @@
-import { levelForValue, matchupLabel } from '../lib.js';
+import { levelForValue, matchupLabel, mapLimit } from '../lib.js';
 
 const ESPN = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba';
 const ESPN_WEB = 'https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba';
@@ -41,8 +41,8 @@ export const nba = {
   levelForValue: (v) => levelForValue(v, NBA_THRESHOLDS),
 
   async loadPlayers() {
-    const rosters = await Promise.all(TEAM_IDS.map((id) =>
-      getJSON(`${ESPN}/teams/${id}/roster`).catch(() => null)));
+    const rosters = await mapLimit(TEAM_IDS, 5, (id) =>
+      getJSON(`${ESPN}/teams/${id}/roster`).catch(() => null));
     const players = [];
     for (const r of rosters) {
       if (!r || !r.athletes) continue;

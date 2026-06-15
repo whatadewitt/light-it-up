@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { shadeForTotalBases, levelForTotalBases, TB_RAMP, buildBattingLine, matchupLabel, normalizeGame, levelForValue } from './lib.js';
+import { shadeForTotalBases, levelForTotalBases, TB_RAMP, buildBattingLine, matchupLabel, normalizeGame, levelForValue, mapLimit } from './lib.js';
 
 test('levelForTotalBases buckets total bases into ramp levels 0–4', () => {
   assert.equal(levelForTotalBases(0), 0);
@@ -137,4 +137,21 @@ test('levelForValue: missing/negative/NaN clamp to level 0', () => {
   assert.equal(levelForValue(undefined, t), 0);
   assert.equal(levelForValue(null, t), 0);
   assert.equal(levelForValue(-5, t), 0);
+});
+
+test('mapLimit: returns results in order and respects the concurrency limit', async () => {
+  const items = [1, 2, 3, 4, 5, 6, 7];
+  let active = 0, maxActive = 0;
+  const fn = async (x) => {
+    active++; maxActive = Math.max(maxActive, active);
+    await new Promise((r) => setTimeout(r, 5));
+    active--; return x * 10;
+  };
+  const out = await mapLimit(items, 3, fn);
+  assert.deepEqual(out, [10, 20, 30, 40, 50, 60, 70]);
+  assert.ok(maxActive <= 3, `maxActive ${maxActive} should be <= 3`);
+});
+
+test('mapLimit: handles empty input', async () => {
+  assert.deepEqual(await mapLimit([], 3, async (x) => x), []);
 });

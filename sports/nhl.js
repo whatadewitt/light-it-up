@@ -1,4 +1,4 @@
-import { levelForValue, matchupLabel } from '../lib.js';
+import { levelForValue, matchupLabel, mapLimit } from '../lib.js';
 import { WORKER_BASE } from './config.js';
 
 const NHL = `${WORKER_BASE}/nhl/v1`;
@@ -37,8 +37,8 @@ export const nhl = {
   levelForValue: (v) => levelForValue(v, NHL_THRESHOLDS),
 
   async loadPlayers() {
-    const rosters = await Promise.all(TRICODES.map((t) =>
-      getJSON(`${NHL}/roster/${t}/current`).then((r) => ({ t, r })).catch(() => null)));
+    const rosters = await mapLimit(TRICODES, 4, (t) =>
+      getJSON(`${NHL}/roster/${t}/current`).then((r) => ({ t, r })).catch(() => null));
     const players = [];
     for (const entry of rosters) {
       if (!entry || !entry.r) continue;

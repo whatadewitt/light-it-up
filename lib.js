@@ -56,6 +56,23 @@ export function buildBattingLine(stat = {}) {
   return tokens.length ? `${head}, ${tokens.join(', ')}` : head;
 }
 
+// Run `fn` over `items` with at most `limit` promises in flight at once.
+// Results are returned in input order. Used to throttle roster fan-outs so we
+// don't burst-trip upstream rate limits (HTTP 429).
+export async function mapLimit(items, limit, fn) {
+  const results = new Array(items.length);
+  let next = 0;
+  async function worker() {
+    while (next < items.length) {
+      const idx = next++;
+      results[idx] = await fn(items[idx], idx);
+    }
+  }
+  const n = Math.min(Math.max(1, limit), items.length || 1);
+  await Promise.all(Array.from({ length: n }, worker));
+  return results;
+}
+
 export function matchupLabel(isHome, abbrev) {
   return `${isHome ? 'vs.' : '@'} ${abbrev}`;
 }
