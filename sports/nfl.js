@@ -7,7 +7,22 @@ const SEASON = 2025;
 const NFL_THRESHOLDS = [0, 19, 39, 69]; // yards/quarter: 0 / 1-19 / 20-39 / 40-69 / 70+
 const SKILL_POS = new Set(['QB', 'RB', 'WR', 'TE', 'FB']);
 
-async function getJSON(url) { const r = await fetch(url); if (!r.ok) throw new Error(`NFL request failed: ${r.status}`); return r.json(); }
+// Retry on 429 / 5xx / network error with backoff. The Worker's /nfl endpoint can
+// transiently 502 on a cold token re-mint or a weekly-fetch blip; retry so the load self-heals.
+async function getJSON(url, tries = 3) {
+  for (let attempt = 1; attempt <= tries; attempt++) {
+    let r = null;
+    try {
+      r = await fetch(url);
+      if (r.ok) return r.json();
+      if (r.status !== 429 && r.status < 500) throw new Error(`NFL request failed: ${r.status}`);
+    } catch (e) {
+      if (attempt === tries) throw e;
+    }
+    await new Promise((res) => setTimeout(res, 400 * attempt));
+  }
+  throw new Error('NFL request failed (retries exhausted)');
+}
 async function getText(url) { const r = await fetch(url); if (!r.ok) throw new Error(`NFL csv failed: ${r.status}`); return r.text(); }
 
 // Pure: split a single CSV line, honoring double-quoted fields (with "" escapes).
