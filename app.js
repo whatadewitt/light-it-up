@@ -8,6 +8,8 @@ const el2 = {
   legendLabels: document.querySelectorAll('.legend__group .legend__label'),
 };
 
+const SEARCH_EG = { mlb: 'Aaron Judge', nhl: 'Connor McDavid', nfl: 'Patrick Mahomes', nba: 'Nikola Jokić' };
+
 function applyTheme() {
   document.documentElement.dataset.league = currentProvider.id;
   const p = currentProvider;
@@ -16,6 +18,8 @@ function applyTheme() {
   if (el2.legendLabels[0]) el2.legendLabels[0].textContent = `Fewer ${p.metricShort}`;
   if (el2.legendLabels[1]) el2.legendLabels[1].textContent = `More ${p.metricShort}`;
   document.title = `Light it Up — ${p.name} ${p.metricLabel}`;
+  el.search.setAttribute('aria-label', `Search for an active ${p.name} player`);
+  el.search.placeholder = `e.g. ${SEARCH_EG[p.id] || ''}`;
 }
 
 const MAX_SUGGESTIONS = 8;
@@ -165,6 +169,7 @@ async function switchLeague(id) {
   // reset UI
   el.search.value = ''; matches = []; closeSuggestions();
   show(el.nameplate, false); show(el.legend, false); clearError(); hideTooltip();
+  el.grid.removeAttribute('aria-label'); el.status.textContent = ''; // drop the prior league's labels
   currentRequestId++; // cancel any in-flight load
   fadeBoardOff();
   shrinkBoard(currentProvider.seasonBoxes);
