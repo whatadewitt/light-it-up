@@ -82,6 +82,10 @@
   --accent: #2fe3c2; --accent-wash: rgba(47, 227, 194, 0.15); --accent-line: rgba(47, 227, 194, 0.40);
   --ramp-0: #14241f; --ramp-1: #1f7a68; --ramp-2: #2fb89e; --ramp-3: #2fe3c2; --ramp-4: #b3fff0;
 }
+:root[data-league="pwhl"] {
+  --accent: #b98cff; --accent-wash: rgba(185, 140, 255, 0.15); --accent-line: rgba(185, 140, 255, 0.40);
+  --ramp-0: #1e1630; --ramp-1: #5a3a9c; --ramp-2: #8a5fd6; --ramp-3: #b98cff; --ramp-4: #e0ccff;
+}
 
 /* --- Reset --- */
 *, *::before, *::after { box-sizing: border-box; }
@@ -183,6 +187,7 @@ a:hover { text-decoration: underline; }
 .league-tab[data-league-id="mlb"]{ --tab:#5be684; } .league-tab[data-league-id="nhl"]{ --tab:#ff5cc8; }
 .league-tab[data-league-id="nfl"]{ --tab:#5ca8ff; } .league-tab[data-league-id="nba"]{ --tab:#ff9d3c; }
 .league-tab[data-league-id="wnba"]{ --tab:#2fe3c2; }
+.league-tab[data-league-id="pwhl"]{ --tab:#b98cff; }
 .league-tab:hover { color:var(--ink); border-color:var(--tab); }
 .league-tab[aria-selected="true"]{ color:#0a0f14; background:var(--tab); border-color:var(--tab); }
 .league-tab:focus-visible { outline:2px solid var(--tab); outline-offset:2px; }
