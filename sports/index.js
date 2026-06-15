@@ -1,7 +1,10 @@
 import { mlb } from './mlb.js';
+import { nhl } from './nhl.js';
+import { nfl } from './nfl.js';
+import { nba } from './nba.js';
 
-// Ordered league registry. MLB only for now; NHL/NFL/NBA added in Plan 3.
-export const LEAGUES = [mlb];
+// Ordered league registry (drives the switcher order in Plan 4).
+export const LEAGUES = [mlb, nhl, nfl, nba];
 
 export const DEFAULT_LEAGUE = 'mlb';
 
