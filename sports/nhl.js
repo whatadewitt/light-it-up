@@ -1,10 +1,9 @@
-import { levelForValue, matchupLabel, mapLimit } from '../lib.js';
+import { levelForValue, matchupLabel } from '../lib.js';
 import { WORKER_BASE } from './config.js';
 
 const NHL = `${WORKER_BASE}/nhl/v1`;
 const SEASON = 20252026;
 const NHL_THRESHOLDS = [0, 1, 2, 3]; // 0 / 1 / 2 / 3 / 4+
-const TRICODES = ['ANA', 'BOS', 'BUF', 'CGY', 'CAR', 'CHI', 'COL', 'CBJ', 'DAL', 'DET', 'EDM', 'FLA', 'LAK', 'MIN', 'MTL', 'NSH', 'NJD', 'NYI', 'NYR', 'OTT', 'PHI', 'PIT', 'SJS', 'SEA', 'STL', 'TBL', 'TOR', 'VAN', 'VGK', 'WSH', 'WPG', 'UTA'];
 
 async function getJSON(url, tries = 3) {
   for (let attempt = 1; attempt <= tries; attempt++) {
@@ -20,8 +19,6 @@ async function getJSON(url, tries = 3) {
   }
   throw new Error('NHL request failed (retries exhausted)');
 }
-
-const fullName = (p) => `${(p.firstName && p.firstName.default) || ''} ${(p.lastName && p.lastName.default) || ''}`.trim();
 
 // Pure: 82 ordered slots from the team's regular-season schedule + per-game record.
 // byGameId: Map(gameId:number -> {points,goals,assists}). tricode: player's team.
@@ -46,17 +43,7 @@ export const nhl = {
   levelForValue: (v) => levelForValue(v, NHL_THRESHOLDS),
 
   async loadPlayers() {
-    const rosters = await mapLimit(TRICODES, 3, (t) =>
-      getJSON(`${NHL}/roster/${t}/current`).then((r) => ({ t, r })).catch(() => null));
-    const players = [];
-    for (const entry of rosters) {
-      if (!entry || !entry.r) continue;
-      const { t, r } = entry;
-      for (const p of [...(r.forwards || []), ...(r.defensemen || [])]) {
-        players.push({ id: p.id, fullName: fullName(p), teamId: t, teamAbbrev: t });
-      }
-    }
-    return players;
+    return getJSON(`${WORKER_BASE}/nhl-players`);
   },
 
   async loadPlayerSeason(player) {
