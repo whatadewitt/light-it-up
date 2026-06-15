@@ -6,10 +6,19 @@ const SEASON = 20252026;
 const NHL_THRESHOLDS = [0, 1, 2, 3]; // 0 / 1 / 2 / 3 / 4+
 const TRICODES = ['ANA', 'BOS', 'BUF', 'CGY', 'CAR', 'CHI', 'COL', 'CBJ', 'DAL', 'DET', 'EDM', 'FLA', 'LAK', 'MIN', 'MTL', 'NSH', 'NJD', 'NYI', 'NYR', 'OTT', 'PHI', 'PIT', 'SJS', 'SEA', 'STL', 'TBL', 'TOR', 'VAN', 'VGK', 'WSH', 'WPG', 'UTA'];
 
-async function getJSON(url) {
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`NHL request failed: ${r.status}`);
-  return r.json();
+async function getJSON(url, tries = 3) {
+  for (let attempt = 1; attempt <= tries; attempt++) {
+    let r = null;
+    try {
+      r = await fetch(url);
+      if (r.ok) return r.json();
+      if (r.status !== 429 && r.status < 500) throw new Error(`NHL request failed: ${r.status}`);
+    } catch (e) {
+      if (attempt === tries) throw e;
+    }
+    await new Promise((res) => setTimeout(res, 250 * attempt));
+  }
+  throw new Error('NHL request failed (retries exhausted)');
 }
 
 const fullName = (p) => `${(p.firstName && p.firstName.default) || ''} ${(p.lastName && p.lastName.default) || ''}`.trim();
@@ -37,7 +46,7 @@ export const nhl = {
   levelForValue: (v) => levelForValue(v, NHL_THRESHOLDS),
 
   async loadPlayers() {
-    const rosters = await mapLimit(TRICODES, 4, (t) =>
+    const rosters = await mapLimit(TRICODES, 3, (t) =>
       getJSON(`${NHL}/roster/${t}/current`).then((r) => ({ t, r })).catch(() => null));
     const players = [];
     for (const entry of rosters) {
