@@ -28,19 +28,13 @@ function show(node, on) { node.classList.toggle('hidden', !on); }
 function showError(msg) { el.error.textContent = msg; show(el.error, true); }
 function clearError() { el.error.textContent = ''; show(el.error, false); }
 
-async function getJSON(url) {
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error(`Request failed: ${resp.status}`);
-  return resp.json();
-}
-
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
 /* ========================================================================
-   The board: a persistent grid of game slots
+   The board: a persistent grid of season slots
    ======================================================================== */
 const boardCells = [];
 
@@ -82,7 +76,7 @@ function fadeBoardOff() {
 }
 
 // Apply one slot record to one cell. Three states:
-//   played  — the player appeared; lit by total bases, focusable, full tooltip.
+//   played  — the player appeared; lit by the provider's metric, focusable, full tooltip.
 //   missed  — the team played, the player did not (e.g. injured); muted, hover tooltip only.
 //   future  — the team game hasn't happened yet; a dark socket, inert.
 function applySlot(c, slot, ordinal) {
