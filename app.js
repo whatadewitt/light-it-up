@@ -3,6 +3,21 @@ import { getProvider, DEFAULT_LEAGUE } from './sports/index.js';
 
 let currentProvider = getProvider(DEFAULT_LEAGUE);
 
+const el2 = {
+  sub: document.getElementById('masthead-sub'),
+  legendLabels: document.querySelectorAll('.legend__group .legend__label'),
+};
+
+function applyTheme() {
+  document.documentElement.dataset.league = currentProvider.id;
+  const p = currentProvider;
+  el2.sub.innerHTML = `See <strong>${p.metricLabel}</strong> per ${p.unit} for any active ${p.name} player (${p.seasonLabel}).`;
+  // legend "Fewer/More <short>"
+  if (el2.legendLabels[0]) el2.legendLabels[0].textContent = `Fewer ${p.metricShort}`;
+  if (el2.legendLabels[1]) el2.legendLabels[1].textContent = `More ${p.metricShort}`;
+  document.title = `Light it Up — ${p.name} ${p.metricLabel}`;
+}
+
 const MAX_SUGGESTIONS = 8;
 const REVEAL_STEP_MS = 4;      // per-cell stagger
 const REVEAL_CAP_MS = 640;     // never take longer than this to light the whole board
@@ -63,7 +78,13 @@ function ensureBoard(n) {
   }
   if (frag.childNodes.length) el.grid.appendChild(frag);
 }
-ensureBoard(currentProvider.seasonBoxes);
+
+function shrinkBoard(n) {
+  while (boardCells.length > n) {
+    const c = boardCells.pop();
+    c.remove();
+  }
+}
 
 let sweepTimer = null;
 let fadeStart = 0;
@@ -79,17 +100,18 @@ function fadeBoardOff() {
 //   played  — the player appeared; lit by the provider's metric, focusable, full tooltip.
 //   missed  — the team played, the player did not (e.g. injured); muted, hover tooltip only.
 //   future  — the team game hasn't happened yet; a dark socket, inert.
-function applySlot(c, slot, ordinal) {
+function applySlot(c, slot, ordinal, provider) {
+  const p = provider || currentProvider;
   if (slot.state === 'played') {
     const matchup = matchupLabel(slot.isHome, slot.opp);
     c.dataset.state = 'played';
-    c.dataset.level = String(currentProvider.levelForValue(slot.value));
+    c.dataset.level = String(p.levelForValue(slot.value));
     c.dataset.matchup = matchup;
     c.dataset.line = slot.tooltipLine || '';
     c.tabIndex = 0;
     c.removeAttribute('aria-hidden');
     c.setAttribute('role', 'img');
-    c.setAttribute('aria-label', currentProvider.boxAria(slot, ordinal));
+    c.setAttribute('aria-label', p.boxAria(slot, ordinal));
   } else if (slot.state === 'missed') {
     c.dataset.state = 'missed';
     c.removeAttribute('data-level');
@@ -105,8 +127,9 @@ function applySlot(c, slot, ordinal) {
 }
 
 // Lay the season out across the board in schedule order, staggered ignite.
-function lightUpBoard(slots, requestId) {
-  ensureBoard(Math.max(currentProvider.seasonBoxes, slots.length));
+function lightUpBoard(slots, requestId, provider) {
+  const p = provider || currentProvider;
+  ensureBoard(Math.max(p.seasonBoxes, slots.length));
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   let playedOrdinal = 0;
@@ -114,7 +137,7 @@ function lightUpBoard(slots, requestId) {
     const c = boardCells[i];
     c.style.transitionDelay = reduce ? '0ms' : `${Math.min(i * REVEAL_STEP_MS, REVEAL_CAP_MS)}ms`;
     if (slot.state === 'played') playedOrdinal += 1;
-    applySlot(c, slot, playedOrdinal);
+    applySlot(c, slot, playedOrdinal, p);
   });
   // Any cells past the schedule length stay as future sockets.
   for (let i = slots.length; i < boardCells.length; i++) resetCell(boardCells[i]);
@@ -132,10 +155,52 @@ async function loadPlayers() {
   players = await currentProvider.loadPlayers();
 }
 
-loadPlayers().catch((err) => {
-  console.error(err);
-  showError('Could not load the player list. Refresh to try again.');
+async function switchLeague(id) {
+  if (id === currentProvider.id) return;
+  currentProvider = getProvider(id);
+  for (const t of document.querySelectorAll('.league-tab'))
+    t.setAttribute('aria-selected', String(t.dataset.leagueId === id));
+  if (location.hash.slice(1) !== id) location.hash = id;
+  applyTheme();
+  // reset UI
+  el.search.value = ''; matches = []; closeSuggestions();
+  show(el.nameplate, false); show(el.legend, false); clearError(); hideTooltip();
+  currentRequestId++; // cancel any in-flight load
+  fadeBoardOff();
+  shrinkBoard(currentProvider.seasonBoxes);
+  ensureBoard(currentProvider.seasonBoxes);
+  players = [];
+  try { await loadPlayers(); } catch { showError('Could not load the player list. Refresh to try again.'); }
+}
+
+document.querySelector('.league-switch').addEventListener('click', (e) => {
+  const tab = e.target.closest('.league-tab');
+  if (tab) switchLeague(tab.dataset.leagueId);
 });
+document.querySelector('.league-switch').addEventListener('keydown', (e) => {
+  const tabs = [...document.querySelectorAll('.league-tab')];
+  const i = tabs.indexOf(document.activeElement);
+  if (i < 0) return;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+    e.preventDefault();
+    const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+    next.focus(); switchLeague(next.dataset.leagueId);
+  }
+});
+
+window.addEventListener('hashchange', () => {
+  const id = location.hash.slice(1) || 'mlb';
+  if (id !== currentProvider.id) switchLeague(id);
+});
+
+// Hash-on-load bootstrap
+const initial = getProvider(location.hash.slice(1));
+currentProvider = initial;
+for (const t of document.querySelectorAll('.league-tab'))
+  t.setAttribute('aria-selected', String(t.dataset.leagueId === initial.id));
+ensureBoard(currentProvider.seasonBoxes);
+applyTheme();
+loadPlayers().catch(() => showError('Could not load the player list. Refresh to try again.'));
 
 /* ========================================================================
    Search + suggestions
@@ -241,9 +306,9 @@ function renderNameplateLoading(player) {
     </div>`;
 }
 
-function renderNameplate(player, slots) {
+function renderNameplate(player, slots, provider) {
   const teamAbbr = player.teamAbbrev || '';
-  const stats = currentProvider.nameplateStats(slots);
+  const stats = (provider || currentProvider).nameplateStats(slots);
   const statsHtml = stats.map((s, i) =>
     `<div class="stat"><span class="stat__value">${escapeHtml(String(s.value))}</span><span class="stat__label">${i === 0 && teamAbbr ? escapeHtml(teamAbbr) + ' · ' : ''}${escapeHtml(s.label)}</span></div>`
   ).join('');
@@ -253,6 +318,7 @@ function renderNameplate(player, slots) {
 }
 
 async function loadPlayer(player) {
+  const provider = currentProvider;
   const requestId = ++currentRequestId;
   clearError();
   show(el.nameplate, true);
@@ -261,13 +327,13 @@ async function loadPlayer(player) {
   fadeBoardOff();
 
   try {
-    const { slots, empty } = await currentProvider.loadPlayerSeason(player);
+    const { slots, empty } = await provider.loadPlayerSeason(player);
     if (requestId !== currentRequestId) return;
 
     if (empty) {
       show(el.nameplate, false);
       show(el.legend, false);
-      showError(`No ${currentProvider.name} games for ${player.fullName} yet — check back later.`);
+      showError(`No ${provider.name} games for ${player.fullName} yet — check back later.`);
       return;
     }
 
@@ -279,13 +345,13 @@ async function loadPlayer(player) {
 
     const apply = () => {
       if (requestId !== currentRequestId) return;
-      renderNameplate(player, slots);
+      renderNameplate(player, slots, provider);
       show(el.legend, true);
       el.grid.setAttribute('aria-label',
-        `${player.fullName}'s ${currentProvider.name} season — played ${playedCount} of the team's ${teamGamesSoFar} games so far, ${currentProvider.metricLabel} per ${currentProvider.unit}`);
+        `${player.fullName}'s ${provider.name} season — played ${playedCount} of the team's ${teamGamesSoFar} ${provider.unit}s so far, ${provider.metricLabel} per ${provider.unit}`);
       el.status.textContent =
-        `${player.fullName}: played ${playedCount} of the team's ${teamGamesSoFar} games so far.`;
-      lightUpBoard(slots, requestId);
+        `${player.fullName}: played ${playedCount} of the team's ${teamGamesSoFar} ${provider.unit}s so far.`;
+      lightUpBoard(slots, requestId, provider);
     };
     if (wait > 0) setTimeout(apply, wait); else apply();
   } catch (err) {
