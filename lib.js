@@ -4,10 +4,19 @@
 // Index 0 is an unlit bulb (a game with no total bases); 4 is the brightest.
 export const TB_RAMP = ['#17241d', '#2f7d4a', '#39c463', '#5be684', '#9dffba'];
 
-// Generic ramp bucketer shared by every sport. `thresholds` are the inclusive
-// upper bounds for levels 0,1,2,3 (in ascending order); any value above the last
-// threshold is level 4. Non-finite or <= 0 values clamp to level 0. Intensity is
-// carried by luminance in the ramp, so this stays colorblind-safe per sport.
+/**
+ * Generic ramp bucketer shared by every sport. Carries metric value by luminance
+ * (colorblind-safe). Returns a ramp level 0-4.
+ *
+ * `thresholds` = the inclusive UPPER BOUNDS for levels 0, 1, 2, 3 (ascending).
+ * Pass FOUR bounds. A value at or below thresholds[i] (and above the previous
+ * bound) is level i; anything above thresholds[3] is level 4. Non-finite or <= 0
+ * values clamp to level 0.
+ *
+ * IMPORTANT: include the level-0 bound first (usually 0). Example — MLB total
+ * bases [0, 2, 4, 6] => 0 / 1-2 / 3-4 / 5-6 / 7+. NHL points would be [0,1,2,3]
+ * => 0 / 1 / 2 / 3 / 4+. Omitting the leading 0 shifts every level down by one.
+ */
 export function levelForValue(value, thresholds) {
   const n = Number(value);
   if (!Number.isFinite(n) || n <= 0) return 0;

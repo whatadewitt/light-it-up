@@ -51,9 +51,9 @@ export function buildSlots(sched, teamId, playedByPk, abbrev) {
 
 // Map raw game-log splits straight to played slots (fallback when schedule
 // alignment can't place every game, e.g. a mid-season trade).
-function slotsFromSplits(splits) {
+function slotsFromSplits(splits, abbrev) {
   return splits.map((s) => {
-    const ng = normalizeGame(s, teamAbbrev, 0);
+    const ng = normalizeGame(s, abbrev, 0);
     return { state: 'played', value: ng.totalBases, opp: ng.opp, isHome: ng.isHome, tooltipLine: ng.line, date: ng.date };
   });
 }
@@ -65,7 +65,7 @@ export const mlb = {
   seasonBoxes: SEASON_GAMES,
   unit: 'game',
   metricLabel: 'total bases',
-  levelForValue: (v) => levelForTotalBases(v),
+  levelForValue: levelForTotalBases,
 
   async loadPlayers() {
     const [teamsData, playersData] = await Promise.all([
@@ -107,9 +107,9 @@ export const mlb = {
     let slots;
     if (sched && sched.dates) {
       const built = buildSlots(sched, player.teamId, playedByPk, teamAbbrev);
-      slots = built.placed === playedByPk.size ? built.slots : slotsFromSplits(splits);
+      slots = built.placed === playedByPk.size ? built.slots : slotsFromSplits(splits, teamAbbrev);
     } else {
-      slots = slotsFromSplits(splits);
+      slots = slotsFromSplits(splits, teamAbbrev);
     }
     return { slots, empty: false };
   },
