@@ -34,3 +34,10 @@ test('buildNbaSlots: not-completed game => future', () => {
   assert.deepEqual(buildNbaSlots(events, new Map(), 'LAL'),
     [{ state: 'future', opp: 'GS', isHome: true }]);
 });
+
+test('buildNbaSlots: unknown team abbrev degrades to ??? / not-home, never wrong data', () => {
+  const events = [ev('9', 'GS', 'LAL', 'GS', true)];
+  const r = buildNbaSlots(events, new Map(), 'XYZ'); // player team not among competitors
+  assert.equal(r[0].opp, '???');
+  assert.equal(r[0].isHome, false);
+});

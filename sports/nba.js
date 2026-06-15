@@ -23,7 +23,7 @@ export function buildNbaSlots(events, pointsByEventId, teamAbbrev) {
     const competitors = comp.competitors || [];
     const mine = competitors.find((c) => c.team && c.team.abbreviation === teamAbbrev);
     const other = competitors.find((c) => c !== mine);
-    const opp = (other && other.team && other.team.abbreviation) || '???';
+    const opp = (mine && other && other.team && other.team.abbreviation) || '???';
     const isHome = !!(mine && mine.homeAway === 'home');
     const id = String(e.id);
     if (pointsByEventId.has(id)) {
@@ -51,7 +51,7 @@ export const nba = {
         ? r.athletes.flatMap((g) => g.items) : r.athletes;
       for (const a of list) {
         if (!a || a.id == null) continue;
-        players.push({ id: a.id, fullName: a.fullName || a.displayName, teamId: abbr, teamAbbrev: abbr });
+        players.push({ id: a.id, fullName: a.fullName || a.displayName, teamId: (r.team && String(r.team.id)) || abbr, teamAbbrev: abbr });
       }
     }
     return players;
