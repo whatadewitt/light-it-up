@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { shadeForTotalBases, levelForTotalBases, TB_RAMP, buildBattingLine, matchupLabel, normalizeGame } from './lib.js';
+import { shadeForTotalBases, levelForTotalBases, TB_RAMP, buildBattingLine, matchupLabel, normalizeGame, levelForValue } from './lib.js';
 
 test('levelForTotalBases buckets total bases into ramp levels 0–4', () => {
   assert.equal(levelForTotalBases(0), 0);
@@ -118,4 +118,23 @@ test('normalizeGame: falls back to opponent name when abbrev missing', () => {
   assert.equal(g.opp, 'Mystery Team');
   assert.equal(g.totalBases, 0);
   assert.equal(g.line, '0 / 4');
+});
+
+test('levelForValue: buckets by ascending thresholds into levels 0-4', () => {
+  // thresholds = the inclusive upper bounds for levels 0..3; anything above => 4
+  const t = [0, 2, 4, 6]; // MLB total bases: 0 / 1-2 / 3-4 / 5-6 / 7+
+  assert.equal(levelForValue(0, t), 0);
+  assert.equal(levelForValue(1, t), 1);
+  assert.equal(levelForValue(2, t), 1);
+  assert.equal(levelForValue(3, t), 2);
+  assert.equal(levelForValue(6, t), 3);
+  assert.equal(levelForValue(7, t), 4);
+  assert.equal(levelForValue(99, t), 4);
+});
+
+test('levelForValue: missing/negative/NaN clamp to level 0', () => {
+  const t = [0, 2, 4, 6];
+  assert.equal(levelForValue(undefined, t), 0);
+  assert.equal(levelForValue(null, t), 0);
+  assert.equal(levelForValue(-5, t), 0);
 });

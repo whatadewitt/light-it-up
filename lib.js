@@ -4,15 +4,24 @@
 // Index 0 is an unlit bulb (a game with no total bases); 4 is the brightest.
 export const TB_RAMP = ['#17241d', '#2f7d4a', '#39c463', '#5be684', '#9dffba'];
 
-// Map a game's total bases to a ramp level 0–4. The intensity is carried by
-// luminance, so the scale stays readable for red-green color blindness.
-export function levelForTotalBases(tb) {
-  const n = Number(tb);
+// Generic ramp bucketer shared by every sport. `thresholds` are the inclusive
+// upper bounds for levels 0,1,2,3 (in ascending order); any value above the last
+// threshold is level 4. Non-finite or <= 0 values clamp to level 0. Intensity is
+// carried by luminance in the ramp, so this stays colorblind-safe per sport.
+export function levelForValue(value, thresholds) {
+  const n = Number(value);
   if (!Number.isFinite(n) || n <= 0) return 0;
-  if (n <= 2) return 1;
-  if (n <= 4) return 2;
-  if (n <= 6) return 3;
-  return 4;
+  for (let i = 0; i < thresholds.length; i++) {
+    if (n <= thresholds[i]) return i;
+  }
+  return thresholds.length; // one past the last threshold => top level (4)
+}
+
+const MLB_TB_THRESHOLDS = [0, 2, 4, 6]; // 0 / 1-2 / 3-4 / 5-6 / 7+
+
+// Map a game's total bases to a ramp level 0-4 (MLB-specific thresholds).
+export function levelForTotalBases(tb) {
+  return levelForValue(tb, MLB_TB_THRESHOLDS);
 }
 
 export function shadeForTotalBases(tb) {
