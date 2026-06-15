@@ -30,6 +30,9 @@ export default {
     }
     // Lockdown: only allowed origins may read responses. Browsers send Origin on
     // cross-origin fetches; block early so we are not an open proxy.
+    // Deliberately returned WITHOUT CORS headers: a browser on a disallowed
+    // origin should not be able to read this response. (A misconfigured allowed
+    // origin will see an opaque network error — that's the intended lockdown.)
     if (origin && !isAllowedOrigin(origin)) {
       return new Response('forbidden origin', { status: 403 });
     }

@@ -26,3 +26,17 @@ test('makeTokenCache: invalidate() forces a re-mint (e.g. after a 401)', async (
   assert.equal(await cache.get(), 't2');
   assert.equal(calls, 2);
 });
+
+test('makeTokenCache: concurrent get() calls share a single mint', async () => {
+  let calls = 0;
+  const mint = async () => {
+    calls += 1;
+    await new Promise((r) => setTimeout(r, 10));
+    return { accessToken: `t${calls}`, ttlMs: 3600_000 };
+  };
+  const cache = makeTokenCache({ mint, now: () => 0 });
+  const [a, b] = await Promise.all([cache.get(), cache.get()]);
+  assert.equal(a, 't1');
+  assert.equal(b, 't1');
+  assert.equal(calls, 1);
+});
