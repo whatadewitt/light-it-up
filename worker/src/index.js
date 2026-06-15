@@ -1,6 +1,7 @@
 import { isAllowedOrigin } from './config.js';
 import { handleNhl, handleNhlPlayers } from './nhl.js';
 import { handleNfl } from './nfl.js';
+import { handlePwhl } from './pwhl.js';
 
 function corsHeaders(origin) {
   const h = { 'Vary': 'Origin' };
@@ -41,6 +42,7 @@ export default {
     const [scope, ...rest] = parts;
     try {
       if (scope === 'nhl-players') return withCors(await handleNhlPlayers(), origin);
+      if (scope === 'pwhl') return withCors(await handlePwhl(url.searchParams), origin);
       if (scope === 'nhl') return withCors(await handleNhl(rest, url.searchParams), origin);
       if (scope === 'nfl') return withCors(await handleNfl(rest, url.searchParams), origin);
       return withCors(new Response(JSON.stringify({ routes: ['/nhl/<path>', '/nfl/player/<gsisId>'] }),
