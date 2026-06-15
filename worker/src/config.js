@@ -21,6 +21,6 @@ export function isAllowedOrigin(origin) {
   let u;
   try { u = new URL(origin); } catch { return false; }
   if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') return true;
-  if (u.hostname.endsWith('.workers.dev')) return true;
+  if (u.hostname.endsWith('.dewittl.workers.dev')) return true;
   return false;
 }

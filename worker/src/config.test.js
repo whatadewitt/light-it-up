@@ -12,12 +12,13 @@ test('isAllowedOrigin: allows localhost and 127.0.0.1 for dev', () => {
   assert.equal(isAllowedOrigin('http://127.0.0.1:5500'), true);
 });
 
-test('isAllowedOrigin: allows *.workers.dev', () => {
+test('isAllowedOrigin: allows own *.dewittl.workers.dev', () => {
   assert.equal(isAllowedOrigin('https://lightitup-data.dewittl.workers.dev'), true);
 });
 
 test('isAllowedOrigin: rejects unknown origins and junk', () => {
   assert.equal(isAllowedOrigin('https://evil.example.com'), false);
+  assert.equal(isAllowedOrigin('https://evil.workers.dev'), false);
   assert.equal(isAllowedOrigin(''), false);
   assert.equal(isAllowedOrigin(null), false);
   assert.equal(isAllowedOrigin('not a url'), false);
