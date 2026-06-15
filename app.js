@@ -8,7 +8,7 @@ const el2 = {
   legendLabels: document.querySelectorAll('.legend__group .legend__label'),
 };
 
-const SEARCH_EG = { mlb: 'Aaron Judge', nhl: 'Connor McDavid', nfl: 'Patrick Mahomes', nba: 'Nikola Jokić' };
+const SEARCH_EG = { mlb: 'Aaron Judge', nhl: 'Connor McDavid', nfl: 'Patrick Mahomes', nba: 'Nikola Jokić', wnba: "A'ja Wilson" };
 
 function applyTheme() {
   document.documentElement.dataset.league = currentProvider.id;
