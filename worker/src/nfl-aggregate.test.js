@@ -34,3 +34,14 @@ test('aggregateWeek: ignores situational duplicate stat codes (no double-count)'
   // If 1xx codes were summed, Lamb would exceed his 110 receiving total.
   assert.equal(lamb.quarters.reduce((a, b) => a + b, 0), 110);
 });
+
+test('aggregateWeek: folds OT (quarter 5) into the Q4 box, via the bare-array path', () => {
+  const synthetic = [{
+    driveChart: { plays: [
+      { quarter: 4, stats: [{ statType: 21, gsisPlayerId: 'P1', gsisPlayerName: 'OT Tester', yards: 10 }] },
+      { quarter: 5, stats: [{ statType: 10, gsisPlayerId: 'P1', gsisPlayerName: 'OT Tester', yards: 7 }] },
+    ]},
+  }];
+  const agg = aggregateWeek(synthetic); // bare array = the real production shape
+  assert.deepEqual(agg.players['P1'].quarters, [0, 0, 0, 17]); // Q4 (10) + OT (7) folded into index 3
+});

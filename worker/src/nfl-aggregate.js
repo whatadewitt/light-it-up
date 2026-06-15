@@ -8,10 +8,11 @@ const YARD_CODES = new Set([10, 11, 15, 16, 21, 22]);
 
 // Returns { players: { [gsisPlayerId]: { name, quarters: [q1,q2,q3,q4] } } }
 export function aggregateWeek(blob) {
-  // The API returns an array at top level; tests wrap a single game in {games:[...]}.
-  const games = Array.isArray(blob)
-    ? blob
-    : blob?.games ?? blob?.data?.games ?? [];
+  // The real api.nfl.com weekly-game-details response is a bare top-level ARRAY of
+  // games (verified), and the Worker passes it straight from resp.json(). The
+  // {games:[...]} / {data:{games}} forms are defensive fallbacks; the unit tests wrap a
+  // single extracted game as {games:[fixture]} to exercise that fallback path.
+  const games = Array.isArray(blob) ? blob : blob?.games ?? blob?.data?.games ?? [];
   const players = {};
   for (const game of games) {
     const plays = game?.driveChart?.plays ?? [];
