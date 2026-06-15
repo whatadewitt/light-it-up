@@ -1,11 +1,11 @@
-import { levelForTotalBases, matchupLabel, normalizeGame } from './lib.js';
+import { matchupLabel } from './lib.js';
+import { getProvider, DEFAULT_LEAGUE } from './sports/index.js';
 
-const API = 'https://statsapi.mlb.com/api/v1';
-const SEASON = 2026;
-const SEASON_GAMES = 162;      // full regular season — the board is always this many slots
+let currentProvider = getProvider(DEFAULT_LEAGUE);
+
 const MAX_SUGGESTIONS = 8;
 const REVEAL_STEP_MS = 4;      // per-cell stagger
-const REVEAL_CAP_MS = 640;     // never take longer than this to light all 162
+const REVEAL_CAP_MS = 640;     // never take longer than this to light the whole board
 const MIN_FADE_MS = 240;       // ensure the old lights read as "fading out" before the new sweep
 
 const el = {
@@ -22,8 +22,7 @@ const el = {
   tipLine: document.getElementById('tooltip-line'),
 };
 
-let teamAbbrev = {};   // id -> "NYY"
-let players = [];      // [{ id, fullName, teamId }]
+let players = [];      // [{ id, fullName, teamId, teamAbbrev }]
 
 function show(node, on) { node.classList.toggle('hidden', !on); }
 function showError(msg) { el.error.textContent = msg; show(el.error, true); }
@@ -70,7 +69,7 @@ function ensureBoard(n) {
   }
   if (frag.childNodes.length) el.grid.appendChild(frag);
 }
-ensureBoard(SEASON_GAMES);
+ensureBoard(currentProvider.seasonBoxes);
 
 let sweepTimer = null;
 let fadeStart = 0;
@@ -89,15 +88,14 @@ function fadeBoardOff() {
 function applySlot(c, slot, ordinal) {
   if (slot.state === 'played') {
     const matchup = matchupLabel(slot.isHome, slot.opp);
-    const bases = slot.totalBases === 1 ? '1 total base' : `${slot.totalBases} total bases`;
     c.dataset.state = 'played';
-    c.dataset.level = String(levelForTotalBases(slot.totalBases));
+    c.dataset.level = String(currentProvider.levelForValue(slot.value));
     c.dataset.matchup = matchup;
-    c.dataset.line = slot.line;
+    c.dataset.line = slot.tooltipLine || '';
     c.tabIndex = 0;
     c.removeAttribute('aria-hidden');
     c.setAttribute('role', 'img');
-    c.setAttribute('aria-label', `Game ${ordinal}, ${matchup}: ${bases}. ${slot.line}`);
+    c.setAttribute('aria-label', currentProvider.boxAria(slot, ordinal));
   } else if (slot.state === 'missed') {
     c.dataset.state = 'missed';
     c.removeAttribute('data-level');
@@ -114,7 +112,7 @@ function applySlot(c, slot, ordinal) {
 
 // Lay the season out across the board in schedule order, staggered ignite.
 function lightUpBoard(slots, requestId) {
-  ensureBoard(Math.max(SEASON_GAMES, slots.length));
+  ensureBoard(Math.max(currentProvider.seasonBoxes, slots.length));
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   let playedOrdinal = 0;
@@ -136,61 +134,11 @@ function lightUpBoard(slots, requestId) {
   }
 }
 
-// Build one slot per team game from the schedule, dropping the player's played
-// games into their real calendar positions (matched by gamePk). Returns how many
-// distinct played games were placed, so the caller can detect a mid-season trade
-// (some played games belong to another team's schedule) and fall back safely.
-function buildSlots(sched, teamId, playedByPk) {
-  // Dedupe by gamePk: the API can list a suspended/resumed game twice.
-  const seen = new Set();
-  const games = [];
-  for (const d of sched.dates || []) {
-    for (const g of d.games || []) {
-      if (g.gamePk == null || seen.has(g.gamePk)) continue;
-      seen.add(g.gamePk);
-      games.push(g);
-    }
-  }
-  const placed = new Set();
-  const slots = games.map((g) => {
-    const split = playedByPk.get(g.gamePk);
-    if (split) {
-      placed.add(g.gamePk);
-      return { state: 'played', ...normalizeGame(split, teamAbbrev, 0) };
-    }
-    const status = g.status || {};
-    const isFinal = status.abstractGameState === 'Final' || status.codedGameState === 'F';
-    const dead = /Cancelled|Postponed|Suspended/i.test(status.detailedState || '');
-    const home = g.teams && g.teams.home && g.teams.home.team;
-    const away = g.teams && g.teams.away && g.teams.away.team;
-    const isHome = !!(home && home.id === teamId);
-    const oppTeam = isHome ? away : home;
-    const oppId = oppTeam && oppTeam.id;
-    const opp = teamAbbrev[oppId] || (oppTeam && oppTeam.name) || '???';
-    if (isFinal && !dead) return { state: 'missed', isHome, opp };
-    return { state: 'future', isHome, opp };
-  });
-  return { slots, placed: placed.size };
+async function loadPlayers() {
+  players = await currentProvider.loadPlayers();
 }
 
-async function loadReferenceData() {
-  const [teamsData, playersData] = await Promise.all([
-    getJSON(`${API}/teams?sportId=1`),
-    getJSON(`${API}/sports/1/players?season=${SEASON}`),
-  ]);
-  teamAbbrev = {};
-  for (const t of teamsData.teams || []) teamAbbrev[t.id] = t.abbreviation;
-  players = (playersData.people || [])
-    // This is a hitting tool — drop pitchers, but keep two-way players (e.g. Ohtani).
-    .filter((p) => !p.primaryPosition || p.primaryPosition.type !== 'Pitcher')
-    .map((p) => ({
-      id: p.id,
-      fullName: p.fullName,
-      teamId: p.currentTeam && p.currentTeam.id,
-    }));
-}
-
-loadReferenceData().catch((err) => {
+loadPlayers().catch((err) => {
   console.error(err);
   showError('Could not load the player list. Refresh to try again.');
 });
@@ -229,7 +177,7 @@ function renderSuggestions() {
           id="suggestion-${i}" role="option" data-i="${i}"
           aria-selected="${i === activeIndex}">
         <span class="suggestion__name">${escapeHtml(p.fullName)}</span>
-        <span class="suggestion__team">${escapeHtml(teamAbbrev[p.teamId] || '')}</span>
+        <span class="suggestion__team">${escapeHtml(p.teamAbbrev || '')}</span>
       </li>`)
     .join('');
   show(el.suggestions, true);
@@ -291,7 +239,7 @@ function selectPlayer(player) {
    Load + render a player's season
    ======================================================================== */
 function renderNameplateLoading(player) {
-  const teamAbbr = teamAbbrev[player.teamId] || '';
+  const teamAbbr = player.teamAbbrev || '';
   el.nameplate.innerHTML = `
     <h2 class="nameplate__name">${escapeHtml(player.fullName)}</h2>
     <div class="nameplate__stats">
@@ -299,17 +247,15 @@ function renderNameplateLoading(player) {
     </div>`;
 }
 
-function renderNameplate(player, playedGames) {
-  const teamAbbr = teamAbbrev[player.teamId] || '';
-  const totalTB = playedGames.reduce((sum, g) => sum + g.totalBases, 0);
-  const best = playedGames.reduce((m, g) => Math.max(m, g.totalBases), 0);
+function renderNameplate(player, slots) {
+  const teamAbbr = player.teamAbbrev || '';
+  const stats = currentProvider.nameplateStats(slots);
+  const statsHtml = stats.map((s, i) =>
+    `<div class="stat"><span class="stat__value">${escapeHtml(String(s.value))}</span><span class="stat__label">${i === 0 && teamAbbr ? escapeHtml(teamAbbr) + ' · ' : ''}${escapeHtml(s.label)}</span></div>`
+  ).join('');
   el.nameplate.innerHTML = `
     <h2 class="nameplate__name">${escapeHtml(player.fullName)}</h2>
-    <div class="nameplate__stats">
-      <div class="stat"><span class="stat__value">${playedGames.length}</span><span class="stat__label">${teamAbbr ? escapeHtml(teamAbbr) + ' · ' : ''}Games</span></div>
-      <div class="stat"><span class="stat__value">${totalTB}</span><span class="stat__label">Total Bases</span></div>
-      <div class="stat"><span class="stat__value">${best}</span><span class="stat__label">Best Game</span></div>
-    </div>`;
+    <div class="nameplate__stats">${statsHtml}</div>`;
 }
 
 async function loadPlayer(player) {
@@ -320,62 +266,31 @@ async function loadPlayer(player) {
   hideTooltip();
   fadeBoardOff();
 
-  const logUrl = `${API}/people/${player.id}/stats?stats=gameLog&season=${SEASON}&group=hitting`;
-  const schedUrl = player.teamId
-    ? `${API}/schedule?sportId=1&season=${SEASON}&teamId=${player.teamId}&gameType=R`
-    : null;
-
   try {
-    // Game log is required; the schedule is best-effort (used to place games on the
-    // team's calendar and reveal missed stretches). A schedule failure is non-fatal.
-    const [data, sched] = await Promise.all([
-      getJSON(logUrl),
-      schedUrl ? getJSON(schedUrl).catch(() => null) : Promise.resolve(null),
-    ]);
+    const { slots, empty } = await currentProvider.loadPlayerSeason(player);
     if (requestId !== currentRequestId) return;
 
-    const splits = (data.stats && data.stats[0] && data.stats[0].splits) || [];
-    if (!splits.length) {
+    if (empty) {
       show(el.nameplate, false);
       show(el.legend, false);
-      showError(`No 2026 games for ${player.fullName} yet — check back after Opening Day.`);
+      showError(`No ${currentProvider.name} games for ${player.fullName} yet — check back later.`);
       return;
     }
 
-    // Index the played games by gamePk so they can be placed on the team's schedule.
-    const playedByPk = new Map();
-    for (const s of splits) {
-      const pk = s.game && s.game.gamePk;
-      if (pk != null) playedByPk.set(pk, s);
-    }
-
-    let slots;
-    if (sched && sched.dates) {
-      const built = buildSlots(sched, player.teamId, playedByPk);
-      // Use the calendar-aligned layout only if every played game found a home on this
-      // team's schedule. If some didn't (e.g. a mid-season trade pulls in another team's
-      // games), fall back to a simple chronological layout so no games are lost.
-      slots = built.placed === playedByPk.size
-        ? built.slots
-        : splits.map((s) => ({ state: 'played', ...normalizeGame(s, teamAbbrev, 0) }));
-    } else {
-      slots = splits.map((s) => ({ state: 'played', ...normalizeGame(s, teamAbbrev, 0) }));
-    }
-
-    const playedGames = slots.filter((s) => s.state === 'played');
-    const teamGamesSoFar = slots.filter((s) => s.state !== 'future').length || playedGames.length;
+    const playedCount = slots.filter((s) => s.state === 'played').length;
+    const teamGamesSoFar = slots.filter((s) => s.state !== 'future').length || playedCount;
 
     const elapsed = (typeof performance !== 'undefined' ? performance.now() : MIN_FADE_MS) - fadeStart;
     const wait = Math.max(0, MIN_FADE_MS - elapsed);
 
     const apply = () => {
       if (requestId !== currentRequestId) return;
-      renderNameplate(player, playedGames);
+      renderNameplate(player, slots);
       show(el.legend, true);
       el.grid.setAttribute('aria-label',
-        `${player.fullName}'s 2026 season — played ${playedGames.length} of the team's ${teamGamesSoFar} games so far, total bases per game`);
+        `${player.fullName}'s ${currentProvider.name} season — played ${playedCount} of the team's ${teamGamesSoFar} games so far, ${currentProvider.metricLabel} per ${currentProvider.unit}`);
       el.status.textContent =
-        `${player.fullName}: played ${playedGames.length} of the team's ${teamGamesSoFar} games so far in 2026.`;
+        `${player.fullName}: played ${playedCount} of the team's ${teamGamesSoFar} games so far.`;
       lightUpBoard(slots, requestId);
     };
     if (wait > 0) setTimeout(apply, wait); else apply();
@@ -384,7 +299,7 @@ async function loadPlayer(player) {
     console.error(err);
     show(el.nameplate, false);
     show(el.legend, false);
-    showError('Could not load that game log. Please try again.');
+    showError('Could not load that season. Please try again.');
   }
 }
 
