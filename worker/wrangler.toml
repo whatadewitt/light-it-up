@@ -1,0 +1,5 @@
+name = "lightitup-data"
+main = "src/index.js"
+compatibility_date = "2025-06-01"
+# No bindings required for v1: token is cached in a module global, weekly
+# play-by-play is cached with the Workers Cache API (caches.default).
