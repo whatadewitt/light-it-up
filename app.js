@@ -6,9 +6,20 @@ let currentProvider = getProvider(DEFAULT_LEAGUE);
 const el2 = {
   sub: document.getElementById('masthead-sub'),
   legendLabels: document.querySelectorAll('.legend__group .legend__label'),
+  dataSource: document.getElementById('data-source'),
 };
 
 const SEARCH_EG = { mlb: 'Aaron Judge', nhl: 'Connor McDavid', nfl: 'Patrick Mahomes', nba: 'Nikola Jokić', wnba: "A'ja Wilson", pwhl: 'Kelly Pannek' };
+
+// Footer data credit per league — the source actually fetched for each.
+const DATA_SOURCE = {
+  mlb:  { label: 'MLB StatsAPI', url: 'https://statsapi.mlb.com' },
+  nhl:  { label: 'NHL', url: 'https://www.nhl.com' },
+  nfl:  { label: 'NFL · Sleeper · nflverse', url: 'https://github.com/nflverse' },
+  nba:  { label: 'ESPN', url: 'https://www.espn.com' },
+  wnba: { label: 'ESPN', url: 'https://www.espn.com' },
+  pwhl: { label: 'PWHL · HockeyTech', url: 'https://www.thepwhl.com' },
+};
 
 function applyTheme() {
   document.documentElement.dataset.league = currentProvider.id;
@@ -20,6 +31,8 @@ function applyTheme() {
   document.title = `Light it Up — ${p.name} ${p.metricLabel}`;
   el.search.setAttribute('aria-label', `Search for an active ${p.name} player`);
   el.search.placeholder = `e.g. ${SEARCH_EG[p.id] || ''}`;
+  const src = DATA_SOURCE[p.id];
+  if (el2.dataSource && src) el2.dataSource.innerHTML = `<a href="${src.url}" rel="noopener">${escapeHtml(src.label)}</a>`;
 }
 
 const MAX_SUGGESTIONS = 8;
