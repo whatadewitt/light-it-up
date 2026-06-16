@@ -59,7 +59,10 @@ export async function handleNfl(pathParts, searchParams) {
   for (let w = 1; w <= WEEKS; w++) {
     const agg = await getAggregatedWeek(season, w);
     const p = agg.players[gsisId];
-    if (p) weeks[w] = { quarters: p.quarters };
+    if (p) weeks[w] = {
+      quarters: p.pass.map((_, i) => p.pass[i] + p.rush[i] + p.rec[i]),
+      pass: p.pass, rush: p.rush, rec: p.rec,
+    };
   }
   return new Response(JSON.stringify({ gsisId, season, weeks }), {
     headers: { 'content-type': 'application/json' },

@@ -11,31 +11,38 @@ const fixture = JSON.parse(readFileSync(
 const agg = aggregateWeek({ games: [fixture] });
 const byName = (name) => Object.values(agg.players).find((p) => p.name.includes(name));
 
-test('aggregateWeek: sums pass+rush+rec total yards per quarter for a QB', () => {
+test('aggregateWeek: QB pass/rush split per quarter', () => {
   const hurts = byName('Hurts');
   assert.ok(hurts, 'Hurts present');
-  // total/quarter = pass + rush per quarter
-  assert.deepEqual(hurts.quarters, [25, 116, 26, 47]); // 152 pass + 62 rush = 214
-  assert.equal(hurts.quarters.reduce((a, b) => a + b, 0), 214);
+  assert.deepEqual(hurts.pass, [14, 79, 18, 41]); // 152 pass total
+  assert.deepEqual(hurts.rush, [11, 37,  8,  6]); // 62 rush total
+  assert.deepEqual(hurts.rec,  [ 0,  0,  0,  0]); // no receiving
+  // combined total still 214
+  const total = hurts.pass.reduce((a,b)=>a+b,0) + hurts.rush.reduce((a,b)=>a+b,0);
+  assert.equal(total, 214);
 });
 
-test('aggregateWeek: RB total = rush + receiving per quarter', () => {
+test('aggregateWeek: RB rush/rec split per quarter', () => {
   const barkley = byName('Barkley');
-  assert.deepEqual(barkley.quarters, [20, 40, 11, 13]); // 60 rush + 24 rec = 84
+  assert.deepEqual(barkley.rush, [20, 29, 11,  0]); // 60 rush total
+  assert.deepEqual(barkley.rec,  [ 0, 11,  0, 13]); // 24 rec total
+  assert.deepEqual(barkley.pass, [ 0,  0,  0,  0]); // no passing
 });
 
-test('aggregateWeek: WR total = receiving per quarter', () => {
+test('aggregateWeek: WR rec per quarter, no rush/pass', () => {
   const lamb = byName('Lamb');
-  assert.deepEqual(lamb.quarters, [76, 10, 11, 13]); // 110 rec
+  assert.deepEqual(lamb.rec,  [76, 10, 11, 13]); // 110 rec total
+  assert.deepEqual(lamb.rush, [ 0,  0,  0,  0]);
+  assert.deepEqual(lamb.pass, [ 0,  0,  0,  0]);
 });
 
 test('aggregateWeek: ignores situational duplicate stat codes (no double-count)', () => {
   const lamb = byName('Lamb');
   // If 1xx codes were summed, Lamb would exceed his 110 receiving total.
-  assert.equal(lamb.quarters.reduce((a, b) => a + b, 0), 110);
+  assert.equal(lamb.rec.reduce((a, b) => a + b, 0), 110);
 });
 
-test('aggregateWeek: folds OT (quarter 5) into the Q4 box, via the bare-array path', () => {
+test('aggregateWeek: folds OT (quarter 5) into Q4 bucket, via bare-array path', () => {
   const synthetic = [{
     driveChart: { plays: [
       { quarter: 4, stats: [{ statType: 21, gsisPlayerId: 'P1', gsisPlayerName: 'OT Tester', yards: 10 }] },
@@ -43,5 +50,8 @@ test('aggregateWeek: folds OT (quarter 5) into the Q4 box, via the bare-array pa
     ]},
   }];
   const agg = aggregateWeek(synthetic); // bare array = the real production shape
-  assert.deepEqual(agg.players['P1'].quarters, [0, 0, 0, 17]); // Q4 (10) + OT (7) folded into index 3
+  // rec[3] = 10 (Q4), rush[3] = 7 (OT folded to Q4)
+  assert.deepEqual(agg.players['P1'].rec,  [0, 0, 0, 10]);
+  assert.deepEqual(agg.players['P1'].rush, [0, 0, 0,  7]);
+  assert.deepEqual(agg.players['P1'].pass, [0, 0, 0,  0]);
 });
