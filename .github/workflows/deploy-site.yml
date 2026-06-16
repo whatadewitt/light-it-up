@@ -1,0 +1,66 @@
+name: Deploy site to S3
+
+# Auto-deploys the static site to S3 (and invalidates CloudFront) on push to main,
+# but only when site files change. Requires these repo settings:
+#   Secrets:   AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+#   Variables: AWS_REGION, S3_BUCKET, S3_PREFIX (e.g. light-it-up),
+#              CLOUDFRONT_DISTRIBUTION_ID (optional — leave unset to skip invalidation)
+# The IAM user only needs s3:PutObject/DeleteObject/ListBucket on the target prefix
+# (+ cloudfront:CreateInvalidation if used).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'app.js'
+      - 'lib.js'
+      - 'styles.css'
+      - 'sports/**'
+      - '.github/workflows/deploy-site.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-site
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run tests
+        run: node --test
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Sync site to S3
+        run: |
+          aws s3 sync . "s3://${{ vars.S3_BUCKET }}/${{ vars.S3_PREFIX }}/" \
+            --exclude "*" \
+            --include "index.html" \
+            --include "app.js" \
+            --include "lib.js" \
+            --include "styles.css" \
+            --include "sports/*.js" \
+            --exclude "sports/*.test.js" \
+            --delete
+
+      - name: Invalidate CloudFront
+        if: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID != '' }}
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" \
+            --paths "/${{ vars.S3_PREFIX }}/*"
