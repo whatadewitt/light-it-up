@@ -122,7 +122,7 @@ function applySlot(c, slot, ordinal, provider) {
   if (slot.state === 'played') {
     const matchup = matchupLabel(slot.isHome, slot.opp);
     c.dataset.state = 'played';
-    c.dataset.level = String(p.levelForValue(slot.value));
+    c.dataset.level = String(slot.level != null ? slot.level : p.levelForValue(slot.value));
     c.dataset.matchup = matchup;
     c.dataset.line = slot.tooltipLine || '';
     c.tabIndex = 0;

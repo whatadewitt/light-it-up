@@ -4,8 +4,11 @@ import { WORKER_BASE } from './config.js';
 const SLEEPER = 'https://api.sleeper.app/v1';
 const GAMES_CSV = 'https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv';
 const SEASON = 2025;
-const NFL_THRESHOLDS = [0, 19, 39, 69]; // yards/quarter: 0 / 1-19 / 20-39 / 40-69 / 70+
+const QB_THRESHOLDS    = [0, 29, 59, 89]; // pass+rush yds/quarter: 0 / 1-29 / 30-59 / 60-89 / 90+
+const SKILL_THRESHOLDS = [0, 14, 29, 49]; // scrimmage yds/quarter: 0 / 1-14 / 15-29 / 30-49 / 50+
 const SKILL_POS = new Set(['QB', 'RB', 'WR', 'TE', 'FB']);
+
+function positionGroup(pos) { return pos === 'QB' ? 'qb' : 'skill'; }
 
 // Retry on 429 / 5xx / network error with backoff. The Worker's /nfl endpoint can
 // transiently 502 on a cold token re-mint or a weekly-fetch blip; retry so the load self-heals.
@@ -65,16 +68,29 @@ export function teamSchedule(rows, team) {
     });
 }
 
-// Pure: 68 quarter slots (17 games x 4Q). weeks: {weekNum:string -> {quarters:[q1..q4]}}.
-export function buildNflSlots(schedule, weeks) {
+// Pure: 68 quarter slots (17 games x 4Q). weeks: {weekNum:string -> {pass,rush,rec,[quarters]}}.
+// group: 'qb' | 'skill' — determines metric, thresholds, and tooltip.
+export function buildNflSlots(schedule, weeks, group) {
+  const thresholds = group === 'qb' ? QB_THRESHOLDS : SKILL_THRESHOLDS;
   const slots = [];
   for (const g of schedule) {
     const wk = weeks[String(g.week)];
     for (let q = 1; q <= 4; q++) {
-      const base = { opp: g.opp, isHome: g.isHome, label: `Q${q}`, week: g.week };
+      const base = { opp: g.opp, isHome: g.isHome, label: `Q${q}`, week: g.week, posGroup: group };
       if (wk) {
-        const yds = wk.quarters[q - 1] || 0;
-        slots.push({ state: 'played', value: yds, ...base, tooltipLine: `Q${q} · ${yds} yds` });
+        const pa = wk.pass?.[q - 1] || 0;
+        const ru = wk.rush?.[q - 1] || 0;
+        const re = wk.rec?.[q - 1]  || 0;
+        let value, tooltipLine;
+        if (group === 'qb') {
+          value = pa + ru;
+          tooltipLine = `Q${q} · ${pa} pass, ${ru} rush`;
+        } else {
+          value = ru + re;
+          tooltipLine = `Q${q} · ${ru} rush, ${re} rec`;
+        }
+        const level = levelForValue(value, thresholds);
+        slots.push({ state: 'played', value, level, ...base, tooltipLine });
       } else if (g.completed) {
         slots.push({ state: 'missed', ...base });
       } else {
@@ -93,9 +109,9 @@ async function loadGamesRows() {
 
 export const nfl = {
   id: 'nfl', name: 'NFL', accent: 'nfl',
-  seasonBoxes: 68, unit: 'quarter', metricLabel: 'total yards',
+  seasonBoxes: 68, unit: 'quarter', metricLabel: 'yards',
   seasonLabel: '2025', metricShort: 'yards',
-  levelForValue: (v) => levelForValue(v, NFL_THRESHOLDS),
+  levelForValue: (v) => levelForValue(v, SKILL_THRESHOLDS),
 
   async loadPlayers() {
     const all = await getJSON(`${SLEEPER}/players/nfl`);
@@ -107,6 +123,7 @@ export const nfl = {
         id: p.gsis_id,
         fullName: p.full_name || `${p.first_name || ''} ${p.last_name || ''}`.trim(),
         teamId: p.team, teamAbbrev: p.team,
+        position: p.position,
       });
     }
     return players;
@@ -120,7 +137,8 @@ export const nfl = {
     const weeks = (wkData && wkData.weeks) || {};
     const schedule = teamSchedule(rows, player.teamAbbrev);
     if (!schedule.length) return { slots: [], empty: true };
-    const slots = buildNflSlots(schedule, weeks);
+    const group = positionGroup(player.position);
+    const slots = buildNflSlots(schedule, weeks, group);
     return { slots, empty: !slots.some((s) => s.state === 'played') };
   },
 
@@ -129,16 +147,17 @@ export const nfl = {
     const games = new Set(played.map((s) => s.week)).size;
     const total = played.reduce((a, s) => a + (s.value || 0), 0);
     const best = played.reduce((m, s) => Math.max(m, s.value || 0), 0);
+    const grp = played[0]?.posGroup;
+    const yLabel = grp === 'qb' ? 'Pass+Rush Yds' : 'Scrimmage Yds';
     return [
       { value: games, label: 'Games' },
-      { value: total, label: 'Total Yards' },
+      { value: total, label: yLabel },
       { value: best, label: 'Best Quarter' },
     ];
   },
 
   boxAria(slot, ordinal) {
     const m = matchupLabel(slot.isHome, slot.opp);
-    const y = slot.value === 1 ? '1 total yard' : `${slot.value} total yards`;
-    return `Week ${slot.week} ${slot.label}, ${m}: ${y}.`;
+    return `Week ${slot.week} ${slot.label}, ${m}: ${slot.value} yards.`;
   },
 };

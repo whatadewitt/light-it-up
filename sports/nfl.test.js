@@ -22,17 +22,51 @@ test('teamSchedule: 2025 REG games for a team, week-ordered, opp/home/completed'
   ]);
 });
 
-test('buildNflSlots: 4 quarter slots per game; played from worker weeks, else missed/future', () => {
+test('buildNflSlots QB: value=pass+rush, level honors QB_THRESHOLDS, tooltipLine', () => {
   const schedule = [
     { week: 1, opp: 'DAL', isHome: true, completed: true },
-    { week: 2, opp: 'KC', isHome: false, completed: true }, // not in weeks => missed x4
-    { week: 3, opp: 'NYG', isHome: true, completed: false }, // future x4
   ];
-  const weeks = { '1': { quarters: [14, 79, 18, 41] } };
-  const slots = buildNflSlots(schedule, weeks);
+  // pass[0]=80, rush[0]=10 => Q1 value=90 > 89 => level 4
+  // remaining quarters: value=0, level=0
+  const weeks = { '1': { pass: [80, 0, 0, 0], rush: [10, 0, 0, 0], rec: [0, 0, 0, 0] } };
+  const slots = buildNflSlots(schedule, weeks, 'qb');
+  assert.equal(slots.length, 4);
+  assert.equal(slots[0].state, 'played');
+  assert.equal(slots[0].value, 90);
+  assert.equal(slots[0].level, 4);
+  assert.equal(slots[0].posGroup, 'qb');
+  assert.equal(slots[0].tooltipLine, 'Q1 · 80 pass, 10 rush');
+  assert.equal(slots[1].value, 0);
+  assert.equal(slots[1].level, 0);
+});
+
+test('buildNflSlots skill: value=rush+rec, level honors SKILL_THRESHOLDS, tooltipLine', () => {
+  const schedule = [
+    { week: 1, opp: 'KC', isHome: false, completed: true },
+  ];
+  // rush[0]=20, rec[0]=15 => Q1 value=35; 29 < 35 <= 49 => level 3
+  const weeks = { '1': { pass: [0, 0, 0, 0], rush: [20, 0, 0, 0], rec: [15, 0, 0, 0] } };
+  const slots = buildNflSlots(schedule, weeks, 'skill');
+  assert.equal(slots[0].state, 'played');
+  assert.equal(slots[0].value, 35);
+  assert.equal(slots[0].level, 3);
+  assert.equal(slots[0].posGroup, 'skill');
+  assert.equal(slots[0].tooltipLine, 'Q1 · 20 rush, 15 rec');
+});
+
+test('buildNflSlots: missed and future carry posGroup', () => {
+  const schedule = [
+    { week: 1, opp: 'DAL', isHome: true, completed: true },  // played
+    { week: 2, opp: 'KC',  isHome: false, completed: true },  // missed (not in weeks)
+    { week: 3, opp: 'NYG', isHome: true,  completed: false }, // future
+  ];
+  const weeks = { '1': { pass: [0, 0, 0, 0], rush: [10, 0, 0, 0], rec: [5, 0, 0, 0] } };
+  const slots = buildNflSlots(schedule, weeks, 'skill');
   assert.equal(slots.length, 12);
-  assert.deepEqual(slots[0], { state: 'played', value: 14, opp: 'DAL', isHome: true, label: 'Q1', week: 1, tooltipLine: 'Q1 · 14 yds' });
-  assert.equal(slots[1].value, 79);
+  assert.equal(slots[0].state, 'played');
+  assert.equal(slots[0].posGroup, 'skill');
   assert.equal(slots[4].state, 'missed');
+  assert.equal(slots[4].posGroup, 'skill');
   assert.equal(slots[8].state, 'future');
+  assert.equal(slots[8].posGroup, 'skill');
 });
