@@ -4,6 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
+  <script>
+    // Subpath guard: when served under /light-it-up (especially without a trailing
+    // slash), pin a <base> so relative assets resolve under the subpath instead of the
+    // site root. Runs before the stylesheet/module load; no-op at the root (local dev).
+    if (location.pathname.indexOf('/light-it-up') === 0) {
+      var b = document.createElement('base');
+      b.href = '/light-it-up/';
+      document.head.appendChild(b);
+    }
+  </script>
+
   <!-- Google Tag Manager -->
   <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
   new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
