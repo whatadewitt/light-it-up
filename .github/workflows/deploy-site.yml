@@ -3,10 +3,10 @@ name: Deploy site to S3
 # Auto-deploys the static site to S3 (and invalidates CloudFront) on push to main,
 # but only when site files change. Requires these repo settings:
 #   Secrets:   AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
-#   Variables: AWS_REGION, S3_BUCKET, CLOUDFRONT_DISTRIBUTION_ID (optional — unset to skip invalidation)
-# Files are synced to the bucket ROOT (dedicated bucket); CloudFront strips the
-# /light-it-up URL prefix via a viewer-request function. The IAM user needs
-# s3:PutObject/DeleteObject/ListBucket on the bucket (+ cloudfront:CreateInvalidation if used).
+#   Variables: AWS_REGION, S3_BUCKET, S3_PREFIX (e.g. light-it-up), CLOUDFRONT_DISTRIBUTION_ID (optional)
+# Files sync UNDER S3_PREFIX so the /light-it-up/ URL path maps 1:1 to the S3 key (no
+# prefix-strip function needed — only directory->index.html resolution, same as /odds).
+# The IAM user needs s3:PutObject/DeleteObject/ListBucket (+ cloudfront:CreateInvalidation if used).
 
 on:
   push:
@@ -48,7 +48,7 @@ jobs:
 
       - name: Sync site to S3
         run: |
-          aws s3 sync . "s3://${{ vars.S3_BUCKET }}/" \
+          aws s3 sync . "s3://${{ vars.S3_BUCKET }}/${{ vars.S3_PREFIX }}/" \
             --exclude "*" \
             --include "index.html" \
             --include "app.js" \
@@ -63,4 +63,4 @@ jobs:
         run: |
           aws cloudfront create-invalidation \
             --distribution-id "${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" \
-            --paths "/light-it-up/*"
+            --paths "/${{ vars.S3_PREFIX }}/*"
