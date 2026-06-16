@@ -254,7 +254,7 @@ function renderSuggestions() {
           id="suggestion-${i}" role="option" data-i="${i}"
           aria-selected="${i === activeIndex}">
         <span class="suggestion__name">${escapeHtml(p.fullName)}</span>
-        <span class="suggestion__team">${escapeHtml(p.teamAbbrev || '')}</span>
+        <span class="suggestion__team">${escapeHtml([p.position, p.teamAbbrev].filter(Boolean).join(' · '))}</span>
       </li>`)
     .join('');
   show(el.suggestions, true);
