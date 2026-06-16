@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "generatedAt": "2026-06-15T00:00:00Z",
-  "title": "Design System: Light it Up — Multi-Accent (MLB / NHL / NFL / NBA)",
+  "title": "Design System: Light it Up — Multi-Accent (MLB / NHL / NFL / NBA / WNBA / PWHL)",
   "extensions": {
     "colorMeta": {
       "outfield-black":  { "role": "neutral", "displayName": "Outfield Black", "canonical": "#090d12", "tonalRamp": ["#05080b","#090d12","#0e151b","#111a23","#16212c","#1b2733","#243240","#33485a"] },
@@ -61,6 +61,26 @@
         "metric": "Points per game",
         "cells": "~82 (one per team game, regular season)",
         "ramp": ["#2a1a0e", "#9c5a1f", "#e08a2e", "#ff9d3c", "#ffd9a0"]
+      },
+      "wnba": {
+        "displayName": "WNBA — Teal (ESPN, direct)",
+        "accent": "#2fe3c2",
+        "accentWash": "rgba(47, 227, 194, 0.14)",
+        "accentLine": "rgba(47, 227, 194, 0.38)",
+        "contrastOnFieldBlack": "12.0:1",
+        "metric": "Points per game",
+        "cells": "44 (one per team game, regular season)",
+        "ramp": ["#14241f", "#1f7a68", "#2fb89e", "#2fe3c2", "#b3fff0"]
+      },
+      "pwhl": {
+        "displayName": "PWHL — Violet (HockeyTech, via Cloudflare Worker)",
+        "accent": "#b98cff",
+        "accentWash": "rgba(185, 140, 255, 0.15)",
+        "accentLine": "rgba(185, 140, 255, 0.40)",
+        "contrastOnFieldBlack": "7.7:1",
+        "metric": "Points (G+A) per game",
+        "cells": "30 (one per team game, regular season)",
+        "ramp": ["#1e1630", "#5a3a9c", "#8a5fd6", "#b98cff", "#e0ccff"]
       }
     },
     "tokenMechanism": {
@@ -160,16 +180,16 @@
   ],
   "narrative": {
     "northStar": "The Night Scoreboard",
-    "overview": "This is an incandescent stadium scoreboard after dark. The page is the black field at night; a player's season ignites across it as a panel of bulbs, each one's brightness scaled to the league's metric for a single game. The tool covers four leagues — MLB, NHL, NFL, and NBA — each lit in its own signal accent: phosphor green for MLB, magenta for NHL, blue for NFL, orange for NBA. The scoreboard is the same scoreboard every time; only the signal color and the metric it measures change. The whole system exists to make one thing — the heatmap — feel alive and worth looking at, the way a scoreboard does when the home team is hot. Energy comes from a single committed signal color per selected league and the way light reads off a dark field, not from ornament. Everything that isn't the board stays quiet so the board can shout. The system explicitly rejects the generic SaaS dashboard (gradient-card grids, the hero-metric template, cookie-cutter admin chrome) and the cluttered stat sheet (ESPN / Baseball-Reference table overload). It is also a deliberate move away from its own origin: a GitHub-contributions grid in default greens on white. Here the grid is reframed as a stadium board — warm, emissive, and dark.",
+    "overview": "This is an incandescent stadium scoreboard after dark. The page is the black field at night; a player's season ignites across it as a panel of bulbs, each one's brightness scaled to the league's metric for a single game. The tool covers six leagues — MLB, NHL, NFL, NBA, WNBA, and PWHL — each lit in its own signal accent: phosphor green for MLB, magenta for NHL, blue for NFL, orange for NBA, teal for WNBA, violet for PWHL. The scoreboard is the same scoreboard every time; only the signal color and the metric it measures change. The whole system exists to make one thing — the heatmap — feel alive and worth looking at, the way a scoreboard does when the home team is hot. Energy comes from a single committed signal color per selected league and the way light reads off a dark field, not from ornament. Everything that isn't the board stays quiet so the board can shout. The system explicitly rejects the generic SaaS dashboard (gradient-card grids, the hero-metric template, cookie-cutter admin chrome) and the cluttered stat sheet (ESPN / Baseball-Reference table overload). It is also a deliberate move away from its own origin: a GitHub-contributions grid in default greens on white. Here the grid is reframed as a stadium board — warm, emissive, and dark.",
     "keyCharacteristics": [
       "One hero (the heatmap), one signal color per selected league, one dark field.",
-      "Intensity is carried by luminance, never hue alone — colorblind-safe by construction in all four league accents.",
+      "Intensity is carried by luminance, never hue alone — colorblind-safe by construction in all six league accents.",
       "Athletic, signage-grade display type over disciplined, legible body type.",
       "Light, not shadow: depth is tonal layering plus the glow a bulb emits.",
       "Quiet chrome, loud data."
     ],
     "rules": [
-      { "name": "The Luminance Rule", "body": "Every league's metric ramp is read by brightness, not hue. Every step is lighter than the last. Never encode the value of a game in hue alone — a red-green colorblind viewer must still read the board correctly. This holds for all four league accents; every ramp is luminance-monotonic and verified AA on Outfield Black.", "section": "colors" },
+      { "name": "The Luminance Rule", "body": "Every league's metric ramp is read by brightness, not hue. Every step is lighter than the last. Never encode the value of a game in hue alone — a red-green colorblind viewer must still read the board correctly. This holds for all six league accents; every ramp is luminance-monotonic and verified AA on Outfield Black.", "section": "colors" },
       { "name": "The One Signal Rule", "body": "The accent is the only saturated color on the surface; which hue that is depends on the selected league. It means 'live / focused / this is the data.' If you find yourself reaching for the accent as decoration, stop — use a slate or an ink tone instead. The one prose exception is the metric name in the masthead subhead: the accent there names the metric the whole view is about, so it reads as signal, not decoration.", "section": "colors" },
       { "name": "The Three-State Rule", "body": "Every slot is exactly one of: played (lit bulb on the metric ramp — tooltip + keyboard focus, including Ramp 0 for a zero-metric game), did not play (#283440 filled slate — hover tooltip, not focusable), or not yet played (#0e151b hollow socket — inert). The board lays out one slot per team game in schedule order (or per quarter for NFL). Reading the season as played / missed / upcoming is the point.", "section": "colors" },
       { "name": "The Scoreboard Weight Rule", "body": "Archivo Black appears exactly twice — the masthead and the nameplate. Body, labels, and stats are always Hanken Grotesk. A page full of black weight is shouting, not designing.", "section": "typography" },
@@ -183,7 +203,7 @@
       "Do reserve Archivo Black for the masthead and nameplate only.",
       "Do convey depth with tone and emitted glow, not ambient drop shadows.",
       "Do honor prefers-reduced-motion: the ignite sweep and league-switch recolor collapse to instant swaps.",
-      "Do keep AA contrast for all four league accents and keep every interactive slot keyboard-reachable with a visible focus ring.",
+      "Do keep AA contrast for all six league accents and keep every interactive slot keyboard-reachable with a visible focus ring.",
       "Do use --accent, --accent-wash, --accent-line, and --ramp-* tokens everywhere so the theme mechanism works across all leagues."
     ],
     "donts": [

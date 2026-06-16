@@ -1,6 +1,6 @@
 ---
 name: Light it Up
-description: A stadium-scoreboard heatmap covering MLB, NHL, NFL, and NBA — one signal accent per selected league.
+description: A stadium-scoreboard heatmap covering MLB, NHL, NFL, NBA, WNBA, and PWHL — one signal accent per selected league.
 colors:
   outfield-black: "#090d12"
   field-glow: "#0c1825"
@@ -107,9 +107,10 @@ is hot. Energy comes from a single committed signal color **per selected league*
 light reads off a dark field, not from ornament. Everything that isn't the board stays quiet
 so the board can shout.
 
-The tool covers four leagues — MLB, NHL, NFL, and NBA — each lit in its own signal accent:
-phosphor green for MLB, magenta for NHL, blue for NFL, orange for NBA. The scoreboard is the
-same scoreboard every time; only the signal color and the metric it measures change.
+The tool covers six leagues — MLB, NHL, NFL, NBA, WNBA, and PWHL — each lit in its own signal
+accent: phosphor green for MLB, magenta for NHL, blue for NFL, orange for NBA, teal for WNBA,
+violet for PWHL. The scoreboard is the same scoreboard every time; only the signal color and
+the metric it measures change.
 
 The system explicitly rejects the **generic SaaS dashboard** (gradient-card grids, the
 hero-metric template of big-number-plus-supporting-stats, cookie-cutter admin chrome) and
@@ -121,7 +122,7 @@ stadium board — warm, emissive, and dark.
 **Key Characteristics:**
 - One hero (the heatmap), one signal color **per selected league**, one dark field.
 - Intensity is carried by **luminance**, never hue alone — colorblind-safe by construction
-  in all four league accents.
+  in all six league accents.
 - Athletic, signage-grade display type over disciplined, legible body type.
 - Light, not shadow: depth is tonal layering plus the glow a bulb emits.
 - Quiet chrome, loud data. If an element doesn't help you read the board faster or enjoy it
@@ -163,7 +164,7 @@ Per-cell bulb glows are derived from the ramp via `color-mix()` — e.g.
 no hard-coded glow color exists; everything inherits from the active league.
 Neutral tokens (field, slate, ink) are never overridden and stay shared.
 
-The four league accents, all AA on Outfield Black (#090d12):
+The six league accents, all AA on Outfield Black (#090d12):
 
 | League | Accent | Contrast | Ramp (0 → 4) |
 |--------|--------|----------|--------------|
@@ -171,6 +172,8 @@ The four league accents, all AA on Outfield Black (#090d12):
 | **NHL** | `#ff5cc8` | 7.1:1  | `#241522` `#8e2f63` `#c44f97` `#ff5cc8` `#ffb3e6` |
 | **NFL** | `#5ca8ff` | 7.9:1  | `#141d2e` `#2f5a9c` `#3f8fd6` `#5ca8ff` `#bfe0ff` |
 | **NBA** | `#ff9d3c` | 9.4:1  | `#2a1a0e` `#9c5a1f` `#e08a2e` `#ff9d3c` `#ffd9a0` |
+| **WNBA** (ESPN, direct) | `#2fe3c2` | 12.0:1 | `#14241f` `#1f7a68` `#2fb89e` `#2fe3c2` `#b3fff0` |
+| **PWHL** (HockeyTech, via Worker) | `#b98cff` | 7.7:1 | `#1e1630` `#5a3a9c` `#8a5fd6` `#b98cff` `#e0ccff` |
 
 **Scoreboard Phosphor** (#5be684) and **Phosphor Deep** (#39c463) remain the MLB/default
 accent values and are carried in the neutral palette for legacy reference.
@@ -189,6 +192,8 @@ The metric each ramp encodes:
 - **NHL**: points (G+A) per game
 - **NFL**: total yards per quarter (each cell = one quarter; 17 games × 4 quarters = 68 cells)
 - **NBA**: points per game
+- **WNBA**: points per game (44 game cells; source: ESPN, CORS-direct like NBA)
+- **PWHL**: points (G+A) per game (30 game cells; source: HockeyTech via Cloudflare Worker)
 
 The board shows the player's **whole team season** in schedule order, so two non-lit
 states sit alongside the ramp:
@@ -202,7 +207,7 @@ states sit alongside the ramp:
 
 **The Luminance Rule.** Every league's metric ramp is read by brightness, not hue. Every
 step is lighter than the last. Never encode the value of a game in hue alone — a red-green
-colorblind viewer must still read the board correctly. This holds for all four league accents.
+colorblind viewer must still read the board correctly. This holds for all six league accents.
 
 **The One Signal Rule.** The accent is the only saturated color on the surface; which hue
 that is depends on the selected league. It means "live / focused / this is the data." If
@@ -274,10 +279,11 @@ ambient shadows on flat panels are forbidden.
 ## 5. Components
 
 ### League Switcher (masthead)
-- **Style:** A segmented tab control (`role="tablist"`, four `.league-tab` buttons with
+- **Style:** A segmented tab control (`role="tablist"`, six `.league-tab` buttons with
   `role="tab"`) sitting in the masthead alongside the title. Each tab carries its **own**
   league accent via a per-tab CSS custom property (`--tab`): MLB green, NHL magenta, NFL blue,
-  NBA orange — all four hues are visible simultaneously even when one league is active.
+  NBA orange, WNBA teal, PWHL violet — all six hues are visible simultaneously even when one
+  league is active.
 - **Active state:** The selected tab is filled solid in its accent (`background: var(--tab)`),
   with dark ink text for contrast. Inactive tabs show the accent only as a border on hover.
 - **Interaction:** Clicking a tab or pressing arrow keys (keyboard nav) sets `data-league` on
@@ -303,8 +309,8 @@ ambient shadows on flat panels are forbidden.
 ### The Heatmap Board (signature component)
 - **Layout:** A breakpoint-free grid — `grid-template-columns: repeat(auto-fill, var(--cell))`,
   capped at 30 columns. Slots per season: ~162 for MLB, ~82 for NHL, 68 (17 games × 4 quarters)
-  for NFL, ~82 for NBA. A player's game slots drop into their real calendar positions in
-  schedule order, so gaps read as missed games.
+  for NFL, ~82 for NBA, ~44 for WNBA, ~30 for PWHL. A player's game slots drop into their real
+  calendar positions in schedule order, so gaps read as missed games.
 - **Cell shape:** `var(--cell)` square (clamp 13–17px), 4px radius. Default is a Dark Socket.
 - **States (three):** *played* = metric ramp by luminance with bulb glow (via `color-mix()`),
   `tabindex="0"`, `role="img"` with a full `aria-label`, broadcast tooltip on hover/focus,
@@ -354,7 +360,7 @@ ambient shadows on flat panels are forbidden.
 - **Do** convey depth with tone and emitted glow, not ambient drop shadows (the Light-Not-Shadow Rule).
 - **Do** honor `prefers-reduced-motion`: the ignite sweep and league-switch recolor collapse to
   instant swaps.
-- **Do** keep AA contrast — body ≥ 4.5:1, large text ≥ 3:1 — for all four league accents, and
+- **Do** keep AA contrast — body ≥ 4.5:1, large text ≥ 3:1 — for all six league accents, and
   keep every interactive slot keyboard-reachable with a visible focus ring.
 
 ### Don't:
